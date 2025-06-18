@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v13.8</title>
+    <title>AI 旅遊行程規劃師 v13.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -20,6 +20,7 @@
             --primary-color: #0891b2; /* Teal-600 */
             --primary-color-hover: #06b6d4; /* Cyan-500 */
             --secondary-bg: #f0f9ff; /* Sky-50 */
+            --danger-color: #dc2626; /* Red-600 */
         }
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
@@ -30,6 +31,13 @@
             --tw-ring-color: var(--primary-color-hover);
             border-color: var(--primary-color-hover);
             box-shadow: 0 0 0 2px var(--tw-ring-color);
+        }
+        .form-input.invalid {
+            border-color: var(--danger-color);
+            --tw-ring-color: var(--danger-color);
+        }
+        .form-input.invalid:focus {
+             box-shadow: 0 0 0 2px var(--danger-color);
         }
         .main-title {
             background: linear-gradient(45deg, var(--primary-color), var(--primary-color-hover));
@@ -88,9 +96,11 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.8</h1>
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
+        
+        <div id="form-validation-message" class="hidden max-w-4xl mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center"></div>
 
         <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
@@ -154,7 +164,7 @@
                 </div>
             </div>
             <div class="mt-8 text-center">
-                <button id="generate-btn" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-12 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out flex items-center justify-center mx-auto gap-2">
+                <button id="generate-btn" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-12 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out flex items-center justify-center mx-auto gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L11.8 9.2a1.21 1.21 0 0 0 0 1.72l5.8 5.8a1.21 1.21 0 0 0 1.72 0l6.84-6.84a1.21 1.21 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-2"/><path d="M11 11 8 8"/><path d="M15 15l3 3"/><path d="m5 21 3-3"/></svg>
                     <span>生成靈感行程</span>
                 </button>
@@ -224,7 +234,7 @@
         map = new google.maps.Map(document.getElementById("map-container"), {
             center: taipei,
             zoom: 12,
-            mapId: 'DEMO_MAP_ID', // Replace with your Map ID for production
+            mapId: 'DEMO_MAP_ID', 
             streetViewControl: false,
             mapTypeControl: false,
         });
@@ -243,8 +253,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // --- API KEYS ---
-        // IMPORTANT: Replace with your actual Gemini API Key
-        const GEMINI_API_KEY = "";
+        const GEMINI_API_KEY = "AIzaSyC792BRnWglnao1MMUcc_M6DmO1cIZ4sd0";
 
         // --- UI Elements ---
         const ui = {
@@ -257,6 +266,7 @@
             resultText: document.getElementById('result-text'),
             resultMap: document.getElementById('result-map'),
             errorMessage: document.getElementById('error-message'),
+            formValidationMessage: document.getElementById('form-validation-message'),
             tabVisual: document.getElementById('tab-visual'),
             tabText: document.getElementById('tab-text'),
             tabMap: document.getElementById('tab-map'),
@@ -365,6 +375,8 @@
             ui.datePicker._flatpickr.clear();
             state.selectedInterests = [];
             renderTags();
+            ui.formValidationMessage.classList.add('hidden');
+            [ui.destination, ui.days, ui.datePicker].forEach(el => el.classList.remove('invalid'));
             window.scrollTo({ top: 0, behavior: 'smooth' });
             dailyLocations = [];
             clearMap();
@@ -394,54 +406,76 @@
             planB: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M22 12a10.06 10.06 0 0 0-2-5.85"/><path d="M3.5 14.29A9.95 9.95 0 0 0 2 18.5"/><path d="M22 18.5c0-1.79-1.09-4.39-2-5.85"/><path d="M2 12a10.06 10.06 0 0 1 2-5.85"/><path d="M12 2a10.06 10.06 0 0 1 5.85 2"/><path d="M12 22a10.06 10.06 0 0 0-5.85-2"/><path d="M18.35 14.29A9.95 9.95 0 0 1 22 18.5"/><path d="M5.65 9.71A9.95 9.95 0 0 1 2 5.5"/><path d="M5.65 14.29A9.95 9.95 0 0 0 2 18.5"/><path d="M18.35 9.71A9.95 9.95 0 0 0 22 5.5"/></svg>`,
         };
         
-        // --- Visual Rendering (FIXED LOGIC) ---
-        function renderVisualVersion(htmlContent) {
+        // --- Parsing and Rendering ---
+        function parseAndRenderAll(htmlContent) {
+            ui.resultText.innerHTML = htmlContent;
+            
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
-            const visualContent = document.createDocumentFragment();
-            
-            let currentNode = tempDiv.firstChild;
-            while(currentNode && currentNode.tagName !== 'H2') {
-                visualContent.appendChild(currentNode.cloneNode(true));
-                currentNode = currentNode.nextElementSibling;
-            }
 
             const daySections = tempDiv.querySelectorAll('h2');
+            const visualFragment = document.createDocumentFragment();
+            
+            // Render content before the first H2
+            let firstH2 = tempDiv.querySelector('h2');
+            if (firstH2) {
+                let currentNode = tempDiv.firstChild;
+                while (currentNode && currentNode !== firstH2) {
+                    visualFragment.appendChild(currentNode.cloneNode(true));
+                    currentNode = currentNode.nextSibling;
+                }
+            }
+
+            dailyLocations = []; 
+
             daySections.forEach((h2, dayIndex) => {
-                visualContent.appendChild(h2.cloneNode(true));
+                visualFragment.appendChild(h2.cloneNode(true));
+                
+                const locationsForDay = [];
+                let itemIndex = 0;
                 
                 let element = h2.nextElementSibling;
-                let itemIndex = 0; 
-                
                 while (element && element.tagName !== 'H2') {
-                    if (element.tagName === 'UL' && (element.querySelector('li').textContent.includes('本日主題') || element.querySelector('li').textContent.includes('預計花費'))) {
-                        visualContent.appendChild(createDaySummaryCard(element));
-                    } 
-                    else if (element.tagName === 'H3') {
-                        visualContent.appendChild(element.cloneNode(true));
-                    }
-                    else if (element.tagName === 'UL' && element.querySelector('a[href*="google.com/maps/search"]')) {
-                        const cardContainer = document.createElement('div');
-                        cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6';
+                    if (element.tagName === 'UL' && element.querySelector('li')?.textContent.includes('本日主題')) {
+                        visualFragment.appendChild(createDaySummaryCard(element));
+                    } else if (element.tagName === 'H3') {
+                        visualFragment.appendChild(element.cloneNode(true));
                         
-                        Array.from(element.children).forEach(li => {
-                            const mainLink = li.querySelector('a');
-                            if (mainLink && mainLink.parentElement === li && mainLink.href.startsWith('https://www.google.com/maps/search/')) {
-                                const cardId = `card-${dayIndex}-${itemIndex}`;
-                                cardContainer.appendChild(createLocationCard(li.innerHTML, cardId, dayIndex, itemIndex));
-                                itemIndex++;
-                            }
-                        });
-                        visualContent.appendChild(cardContainer);
+                        const nextUl = element.nextElementSibling;
+                        if (nextUl && nextUl.tagName === 'UL' && nextUl.querySelector('a[href*="google.com/maps/search"]')) {
+                            const cardContainer = document.createElement('div');
+                            cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6';
+                            
+                            Array.from(nextUl.children).forEach(li => {
+                                const mainLink = li.querySelector('a');
+                                if (mainLink && mainLink.parentElement === li && mainLink.href.includes('google.com/maps/search/')) {
+                                    const cardId = `card-${dayIndex}-${itemIndex}`;
+                                    const name = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
+                                    const query = new URL(mainLink.href).searchParams.get('query');
+                                    
+                                    if (name && query) {
+                                        locationsForDay.push({ name: name, query: query, cardId: cardId });
+                                        cardContainer.appendChild(createLocationCard(li.innerHTML, cardId, dayIndex, itemIndex));
+                                        itemIndex++;
+                                    }
+                                }
+                            });
+                            visualFragment.appendChild(cardContainer);
+                        }
                     }
                     element = element.nextElementSibling;
+                }
+
+                if (locationsForDay.length > 0) {
+                    dailyLocations.push({ title: h2.textContent, locations: locationsForDay });
                 }
             });
 
             ui.resultVisual.innerHTML = '';
-            ui.resultVisual.appendChild(visualContent);
+            ui.resultVisual.appendChild(visualFragment);
+            setupDayToggles();
         }
-        
+
         function createDaySummaryCard(ulElement) {
             const card = document.createElement('div');
             card.className = 'day-summary-card';
@@ -463,7 +497,6 @@
             const locationName = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
             
             const imageLink = document.createElement('a');
-            // MODIFICATION: Use location name for the image link query to go directly to the venue page.
             imageLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationName)}`;
             imageLink.target = '_blank';
             imageLink.rel = 'noopener noreferrer';
@@ -652,43 +685,7 @@
             });
         }
         
-        function parseItineraryForMap(htmlContent) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            
-            dailyLocations = [];
-            const daySections = tempDiv.querySelectorAll('h2');
-            
-            daySections.forEach((h2, dayIndex) => {
-                const dayTitle = h2.textContent;
-                const locationsForDay = [];
-                let element = h2.nextElementSibling;
-                let itemIndex = 0; 
-                
-                while (element && element.tagName !== 'H2') {
-                     if (element.tagName === 'UL' && element.querySelector('a[href*="google.com/maps/search"]')) {
-                         Array.from(element.children).forEach(li => {
-                             const mainLink = li.querySelector('a');
-                             if (mainLink && mainLink.parentElement === li && mainLink.href.includes('google.com/maps/search/')) {
-                                 const name = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
-                                 const url = new URL(mainLink.href);
-                                 const query = url.searchParams.get('query');
-                                 if (name && query) {
-                                     locationsForDay.push({ name: name, query: query, cardId: `card-${dayIndex}-${itemIndex++}` });
-                                 }
-                             }
-                         });
-                     }
-                    element = element.nextElementSibling;
-                }
-                
-                if (locationsForDay.length > 0) {
-                    dailyLocations.push({ title: dayTitle, locations: locationsForDay });
-                }
-            });
-            setupDayToggles();
-        }
-
+        // --- Map Logic ---
         function setupDayToggles() {
             ui.dayTogglesContainer.innerHTML = '';
             dailyLocations.forEach((day, index) => {
@@ -764,6 +761,13 @@
                 const travelMode = ui.transport.value === '租車自駕' ? google.maps.TravelMode.DRIVING : google.maps.TravelMode.TRANSIT;
                 ui.mapDetailsContainer.innerHTML = '';
 
+                // Create placeholders for ordered rendering
+                for (let i = 0; i < uniqueGeocodedLocations.length - 1; i++) {
+                    const placeholder = document.createElement('div');
+                    placeholder.id = `leg-placeholder-${i}`;
+                    ui.mapDetailsContainer.appendChild(placeholder);
+                }
+
                 if (travelMode === google.maps.TravelMode.DRIVING) {
                     const request = {
                         origin: uniqueGeocodedLocations[0].position, destination: uniqueGeocodedLocations[uniqueGeocodedLocations.length - 1].position,
@@ -773,7 +777,7 @@
                     directionsService.route(request, (response, status) => {
                         if (status === google.maps.DirectionsStatus.OK) {
                             directionsRenderer.setDirections(response);
-                            renderMapDetails(response.routes[0].legs, uniqueGeocodedLocations, 0, travelMode);
+                            renderMapDetails(response.routes[0].legs, uniqueGeocodedLocations, travelMode);
                         } else {
                             console.error('Directions request failed due to ' + status);
                             ui.mapDetailsContainer.innerHTML = `<p class="text-red-500">無法計算開車路線資訊：${status}</p>`;
@@ -795,7 +799,7 @@
                                         polylineOptions: { strokeColor: '#06b6d4', strokeWeight: 5, strokeOpacity: 0.7 }
                                     });
                                     renderers.push(legRenderer);
-                                    renderMapDetails(response.routes[0].legs, [uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1]], index, google.maps.TravelMode.TRANSIT);
+                                    renderSingleMapDetail(response.routes[0].legs[0], uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1], index, google.maps.TravelMode.TRANSIT);
                                 } else if (status === google.maps.DirectionsStatus.ZERO_RESULTS) {
                                     console.warn(`Transit for leg ${index} failed, falling back to WALKING.`);
                                     legRequest.travelMode = google.maps.TravelMode.WALKING;
@@ -806,7 +810,7 @@
                                                 polylineOptions: { strokeColor: '#16a34a', strokeWeight: 6, strokeOpacity: 0.8, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 }, offset: '0', repeat: '20px'}] }
                                             });
                                             renderers.push(legRenderer);
-                                            renderMapDetails(walkResponse.routes[0].legs, [uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1]], index, google.maps.TravelMode.WALKING);
+                                            renderSingleMapDetail(walkResponse.routes[0].legs[0], uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1], index, google.maps.TravelMode.WALKING);
                                         } else {
                                             console.error(`WALKING fallback for leg ${index} also failed: ${walkStatus}`);
                                             renderErrorLeg(uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1], index);
@@ -825,48 +829,54 @@
             }
         }
         
-        function renderMapDetails(legs, locations, startIndex, travelModeOverride) {
-            legs.forEach((leg, i) => {
-                const globalIndex = startIndex + i;
-                const startLoc = locations[i];
-                const endLoc = locations[i + 1];
-
-                if (!startLoc || !endLoc) return;
-
-                const detailLink = document.createElement('a');
-                detailLink.className = 'map-leg-detail-link';
-                detailLink.target = '_blank';
-                detailLink.rel = 'noopener noreferrer';
-                
-                const mode = travelModeOverride ? travelModeOverride.toLowerCase() : (ui.transport.value === '租車自駕' ? 'driving' : 'transit');
-                const icon = mode === 'driving' ? '🚗' : (mode === 'walking' ? '🚶' : '🚇');
-                
-                // MODIFICATION: Use location names for the directions link for clarity.
-                detailLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startLoc.name)}&destination=${encodeURIComponent(endLoc.name)}&travelmode=${mode}`;
-
-                const detailEl = document.createElement('div');
-                detailEl.className = 'map-leg-detail';
-                // MODIFICATION: Reworked the inner HTML for a cleaner route display.
-                detailEl.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="flex flex-col items-center self-stretch">
-                            <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${globalIndex + 1}</span>
-                            <div class="h-full border-l-2 border-slate-300 border-dashed my-1"></div>
-                            <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${globalIndex + 2}</span>
-                        </div>
-                        <div class="flex-grow py-1">
-                             <p class="font-bold text-slate-800">${startLoc.name}</p>
-                             <p class="text-sm text-slate-500 my-2">${icon} 約 ${leg.duration.text} (${leg.distance.text})</p>
-                             <p class="font-bold text-slate-800">${endLoc.name}</p>
-                        </div>
-                    </div>
-                `;
-                detailLink.appendChild(detailEl);
-                ui.mapDetailsContainer.appendChild(detailEl);
+        function renderMapDetails(legs, locations, travelMode) {
+             legs.forEach((leg, i) => {
+                renderSingleMapDetail(leg, locations[i], locations[i+1], i, travelMode);
             });
         }
         
+        function renderSingleMapDetail(leg, startLoc, endLoc, index, travelMode) {
+            if (!startLoc || !endLoc) return;
+
+            const placeholder = document.getElementById(`leg-placeholder-${index}`);
+            if (!placeholder) return;
+
+            const detailLink = document.createElement('a');
+            detailLink.className = 'map-leg-detail-link';
+            detailLink.target = '_blank';
+            detailLink.rel = 'noopener noreferrer';
+            
+            const mode = travelMode.toLowerCase();
+            const icon = mode === 'driving' ? '🚗' : (mode === 'walking' ? '🚶' : '🚇');
+            
+            detailLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startLoc.name)}&destination=${encodeURIComponent(endLoc.name)}&travelmode=${mode}`;
+
+            const detailEl = document.createElement('div');
+            detailEl.className = 'map-leg-detail';
+            detailEl.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center self-stretch">
+                        <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${index + 1}</span>
+                        <div class="h-full border-l-2 border-slate-300 border-dashed my-1"></div>
+                        <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${index + 2}</span>
+                    </div>
+                    <div class="flex-grow py-1">
+                         <p class="font-bold text-slate-800">${startLoc.name}</p>
+                         <p class="text-sm text-slate-500 my-2">${icon} 約 ${leg.duration.text} (${leg.distance.text})</p>
+                         <p class="font-bold text-slate-800">${endLoc.name}</p>
+                    </div>
+                </div>
+            `;
+            detailLink.appendChild(detailEl);
+            
+            // Replace placeholder with the actual content
+            placeholder.replaceWith(detailLink);
+        }
+        
         function renderErrorLeg(startLoc, endLoc, index) {
+            const placeholder = document.getElementById(`leg-placeholder-${index}`);
+            if (!placeholder) return;
+
             const errorDiv = document.createElement('div');
             errorDiv.className = 'map-leg-detail';
             errorDiv.innerHTML = `
@@ -877,7 +887,7 @@
                     <span>${endLoc.name}</span>
                 </p>
                 <p class="text-red-600 mt-1 pl-8">無法規劃此段路線。</p>`;
-            ui.mapDetailsContainer.appendChild(errorDiv);
+            placeholder.replaceWith(errorDiv);
         }
 
         function highlightCardAndScroll(cardId) {
@@ -893,11 +903,38 @@
         }
         
         // --- Main Generation Logic ---
+        function validateInputs() {
+            const requiredFields = [
+                { el: ui.destination, name: "目的地" },
+                { el: ui.days, name: "總天數" },
+                { el: ui.datePicker, name: "出發日期" }
+            ];
+            let missingFields = [];
+
+            requiredFields.forEach(field => {
+                if (!field.el.value.trim()) {
+                    missingFields.push(field.name);
+                    field.el.classList.add('invalid');
+                } else {
+                    field.el.classList.remove('invalid');
+                }
+            });
+
+            if (missingFields.length > 0) {
+                ui.formValidationMessage.textContent = `請填寫必要的欄位：${missingFields.join('、')}`;
+                ui.formValidationMessage.classList.remove('hidden');
+                return false;
+            }
+            
+            ui.formValidationMessage.classList.add('hidden');
+            return true;
+        }
+
         async function handleGenerate() {
-             if (!ui.destination.value || !ui.days.value || !ui.datePicker.value) {
-                alert('請務必填寫「目的地」、「總天數」和「出發日期」！');
+            if (!validateInputs()) {
                 return;
-             }
+            }
+
             ui.errorMessage.classList.add('hidden');
             ui.inputForm.classList.add('hidden');
             ui.loader.classList.remove('hidden');
@@ -939,7 +976,7 @@ ${interestPrompt}
         - \`* 💰 預計花費：[根據預算等級估算一個範圍，例如 約 TWD 1,500 ~ 2,500 / 人]\`
         - \`* 🏃 行程步調：[呼應使用者選擇的步調]\`
         - \`* 🚗 主要交通：[呼應使用者選擇的交通方式]\`
-    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。在午餐和晚餐時段，**必須**加入 \`### 🍜 用餐\` 標題。
+    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。在午餐和晚餐時段，**必須**加入 \`### � 用餐\` 標題。
     -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出活動/餐廳。每個列表項代表一個地點。
     -   **地點詳細資訊 (巢狀列表):**
         -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\`
@@ -972,19 +1009,24 @@ ${interestPrompt}
 `;
             try {
                 const apiKey = GEMINI_API_KEY; 
+                if (!apiKey) {
+                    throw new Error("Gemini API Key is missing.");
+                }
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: userPrompt }] }] };
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
-                if (!response.ok) throw new Error(`API request failed, status: ${response.status}`);
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(`API 請求失敗，狀態碼: ${response.status}. ${errorData.error?.message || ''}`);
+                }
                 const result = await response.json();
                 
                 if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
                     state.rawMarkdownContent = result.candidates[0].content.parts[0].text;
                     const htmlContent = marked.parse(state.rawMarkdownContent);
                     
-                    ui.resultText.innerHTML = htmlContent;
-                    renderVisualVersion(htmlContent);
+                    parseAndRenderAll(htmlContent);
 
                     const cards = ui.resultVisual.querySelectorAll('.info-card');
                     cards.forEach(card => {
@@ -993,15 +1035,13 @@ ${interestPrompt}
                         findAndSetPhoto(locationName, imageContainer);
                     });
 
-                    parseItineraryForMap(htmlContent);
-
                     ui.resultWrapper.classList.remove('hidden');
                     switchTab('visual');
                     ui.resultWrapper.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    let errorText = 'AI did not return a valid response.';
+                    let errorText = 'AI 未能回傳有效的行程內容。';
                     if(result.promptFeedback && result.promptFeedback.blockReason) {
-                        errorText += ` Reason: ${result.promptFeedback.blockReason}`;
+                        errorText += ` 原因: ${result.promptFeedback.blockReason}`;
                     }
                     throw new Error(errorText);
                 }
