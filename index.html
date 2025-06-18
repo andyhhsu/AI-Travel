@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v13.9</title>
+    <title>AI 旅遊行程規劃師 v13.9.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -96,7 +96,7 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9</h1>
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.1</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
         
@@ -253,7 +253,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // --- API KEYS ---
-        const GEMINI_API_KEY = "AIzaSyC792BRnWglnao1MMUcc_M6DmO1cIZ4sd0";
+        // 警告：請勿將 API 金鑰直接寫在前端程式碼中。此處為範例。
+        // 建議您使用後端服務或環境變數來安全地管理金鑰。
+        const GEMINI_API_KEY = "AIzaSyC792BRnWglnao1MMUcc_M6DmO1cIZ4sd0"; // ！！！請在此處貼上您的 Google AI Studio API 金鑰
 
         // --- UI Elements ---
         const ui = {
@@ -359,10 +361,10 @@
             if (tabName === 'map' && dailyLocations.length > 0 && ui.dayTogglesContainer.children.length > 0) {
                  const firstDayButton = ui.dayTogglesContainer.querySelector('button');
                  if(firstDayButton && !firstDayButton.classList.contains('day-toggle-btn-active')) {
-                    firstDayButton.click();
+                   firstDayButton.click();
                  }
                  setTimeout(() => {
-                    if(map) google.maps.event.trigger(map, 'resize');
+                     if(map) google.maps.event.trigger(map, 'resize');
                  }, 100);
             }
         }
@@ -424,7 +426,10 @@
                     visualFragment.appendChild(currentNode.cloneNode(true));
                     currentNode = currentNode.nextSibling;
                 }
+            } else { // If no H2, render all content
+                 visualFragment.appendChild(tempDiv.cloneNode(true));
             }
+
 
             dailyLocations = []; 
 
@@ -441,16 +446,21 @@
                     } else if (element.tagName === 'H3') {
                         visualFragment.appendChild(element.cloneNode(true));
                         
-                        const nextUl = element.nextElementSibling;
+                        // Find the UL that follows the H3
+                        let nextUl = element.nextElementSibling;
                         if (nextUl && nextUl.tagName === 'UL' && nextUl.querySelector('a[href*="google.com/maps/search"]')) {
                             const cardContainer = document.createElement('div');
                             cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6';
                             
                             Array.from(nextUl.children).forEach(li => {
+                                // Find the first link in the li, which should be the map link
                                 const mainLink = li.querySelector('a');
-                                if (mainLink && mainLink.parentElement === li && mainLink.href.includes('google.com/maps/search/')) {
+                                
+                                // FIX: Removed 'mainLink.parentElement === li' check.
+                                // This makes parsing more robust against extra <p> tags from the markdown parser.
+                                if (mainLink && mainLink.href.includes('google.com/maps/search/')) {
                                     const cardId = `card-${dayIndex}-${itemIndex}`;
-                                    const name = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
+                                    const name = mainLink.textContent.replace(/📍|🍜|🍽️/g, '').trim();
                                     const query = new URL(mainLink.href).searchParams.get('query');
                                     
                                     if (name && query) {
@@ -494,7 +504,7 @@
             card.dataset.cardId = cardId;
 
             const mainLink = tempLi.querySelector('a');
-            const locationName = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
+            const locationName = mainLink ? mainLink.textContent.replace(/📍|🍜|🍽️/g, '').trim() : '地點名稱未知';
             
             const imageLink = document.createElement('a');
             imageLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationName)}`;
@@ -602,7 +612,7 @@
             `;
             try {
                 const apiKey = GEMINI_API_KEY; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: swapPrompt }] }] };
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
@@ -612,7 +622,7 @@
                 if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
                     const newMarkdownLi = result.candidates[0].content.parts[0].text.trim();
                     
-                    if (newMarkdownLi.startsWith('- ')) {
+                    if (newMarkdownLi.startsWith('- ') || newMarkdownLi.startsWith('* ')) {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = marked.parse(newMarkdownLi);
                         const newLiHTML = tempDiv.querySelector('li').innerHTML;
@@ -645,9 +655,9 @@
                 button.innerHTML = '更換失敗';
             } finally {
                  setTimeout(() => {
-                    button.innerHTML = '🔄 換一個';
-                    button.classList.remove('loading');
-                    button.disabled = false;
+                     button.innerHTML = '🔄 換一個';
+                     button.classList.remove('loading');
+                     button.disabled = false;
                  }, 2000);
             }
         }
@@ -690,7 +700,7 @@
             ui.dayTogglesContainer.innerHTML = '';
             dailyLocations.forEach((day, index) => {
                 const btn = document.createElement('button');
-                btn.textContent = day.title.split('：')[0];
+                btn.textContent = day.title.split('：')[0] || `第 ${index + 1} 天`;
                 btn.className = 'day-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all';
                 btn.onclick = () => {
                     displayRouteForDay(index);
@@ -751,8 +761,8 @@
                  markers.push(marker);
                  
                  if (!placeIdSet.has(loc.place_id)) {
-                    uniqueGeocodedLocations.push(loc);
-                    placeIdSet.add(loc.place_id);
+                     uniqueGeocodedLocations.push(loc);
+                     placeIdSet.add(loc.place_id);
                  }
             });
             map.fitBounds(bounds);
@@ -831,7 +841,7 @@
         
         function renderMapDetails(legs, locations, travelMode) {
              legs.forEach((leg, i) => {
-                renderSingleMapDetail(leg, locations[i], locations[i+1], i, travelMode);
+                 renderSingleMapDetail(leg, locations[i], locations[i+1], i, travelMode);
             });
         }
         
@@ -976,7 +986,7 @@ ${interestPrompt}
         - \`* 💰 預計花費：[根據預算等級估算一個範圍，例如 約 TWD 1,500 ~ 2,500 / 人]\`
         - \`* 🏃 行程步調：[呼應使用者選擇的步調]\`
         - \`* 🚗 主要交通：[呼應使用者選擇的交通方式]\`
-    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。在午餐和晚餐時段，**必須**加入 \`### � 用餐\` 標題。
+    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。在午餐和晚餐時段，**必須**加入 \`### 🍜 用餐\` 標題。
     -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出活動/餐廳。每個列表項代表一個地點。
     -   **地點詳細資訊 (巢狀列表):**
         -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\`
@@ -1010,9 +1020,9 @@ ${interestPrompt}
             try {
                 const apiKey = GEMINI_API_KEY; 
                 if (!apiKey) {
-                    throw new Error("Gemini API Key is missing.");
+                    throw new Error("Gemini API Key is missing. 請在程式碼中填入您的金鑰。");
                 }
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: userPrompt }] }] };
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
