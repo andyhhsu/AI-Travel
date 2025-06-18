@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v14.1</title>
+    <title>AI 旅遊行程規劃師 v13.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -17,39 +17,19 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
     <style>
         :root {
-            --primary-color: #0891b2; /* Cyan-600 */
+            --primary-color: #0891b2; /* Teal-600 */
             --primary-color-hover: #06b6d4; /* Cyan-500 */
-            --secondary-bg: #f8fafc; /* Slate-50, a more neutral background */
-            --error-color: #ef4444; /* Red-500 */
+            --secondary-bg: #f0f9ff; /* Sky-50 */
         }
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
             background-color: var(--secondary-bg); 
             color: #334155; /* Slate-700 */
         }
-        .form-input {
-            background-color: #f1f5f9; /* Slate-100 */
-            border-color: #cbd5e1; /* Slate-300 */
-            transition: all 0.2s ease-in-out;
-        }
         .form-input:focus, .flatpickr-input:focus { 
-            --tw-ring-color: var(--primary-color);
-            background-color: #fff;
-            border-color: var(--primary-color);
+            --tw-ring-color: var(--primary-color-hover);
+            border-color: var(--primary-color-hover);
             box-shadow: 0 0 0 2px var(--tw-ring-color);
-        }
-        /* --- [NEW] Validation Styles --- */
-        .form-input.is-invalid {
-            border-color: var(--error-color);
-            --tw-ring-color: var(--error-color);
-        }
-        .form-input.is-invalid:focus {
-             box-shadow: 0 0 0 2px var(--tw-ring-color);
-        }
-        .error-text {
-            color: var(--error-color);
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
         }
         .main-title {
             background: linear-gradient(45deg, var(--primary-color), var(--primary-color-hover));
@@ -57,136 +37,107 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- Result Area Styles --- */
-        #result-container h1 { font-size: 2rem; font-weight: bold; margin-bottom: 1rem; color: #1e293b; }
-        #result-container h2 { font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-top: 2.5rem; margin-bottom: 1.5rem; color: var(--primary-color); }
-        #result-text h3, #result-visual h3 { font-size: 1.2rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1.25rem; color: #334155; padding-left: 0.75rem; border-left: 4px solid var(--primary-color-hover); }
+        /* --- 結果區域樣式 --- */
+        #result-container h1 { font-size: 2.25rem; font-weight: bold; margin-bottom: 1rem; color: #1e293b; }
+        #result-container h2 { font-size: 1.75rem; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 3rem; margin-bottom: 1.5rem; color: var(--primary-color); }
+        #result-text h3, #result-visual h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #334155; padding-left: 0.5rem; border-left: 4px solid var(--primary-color-hover); }
 
         .info-card {
-            background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             overflow: hidden; margin-bottom: 1.5rem; transition: transform 0.3s ease, box-shadow 0.3s ease; border: 1px solid #e2e8f0;
             display: flex; flex-direction: column; position: relative;
         }
         .info-card:hover, .info-card.highlighted {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             border-color: var(--primary-color);
         }
         .info-card-image-link { display: block; position: relative; }
         .info-card-image-container { width: 100%; height: 180px; background-color: #e0f2fe; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .info-card-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
-        .info-card:hover .info-card-image { transform: scale(1.05); }
-        .info-card-image-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); padding: 1.5rem 1rem 1rem; color: white; font-weight: bold; font-size: 1.1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
-        .info-card-content { padding: 1.25rem; flex-grow: 1; padding-bottom: 4rem; }
-        .info-card-details { display: flex; flex-direction: column; gap: 1rem; color: #475569; }
-        .info-card-details .detail-item { display: flex; align-items: flex-start; gap: 0.75rem; word-break: break-word; line-height: 1.6; }
-        .info-card-details .detail-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary-color); margin-top: 3px;}
+        .info-card-image { width: 100%; height: 100%; object-fit: cover; }
+        .info-card-image-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); padding: 1.5rem 0.75rem 0.75rem; color: white; font-weight: bold; font-size: 1.1rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .info-card-content { padding: 1rem 1.25rem; flex-grow: 1; padding-bottom: 3.5rem; }
+        .info-card-details { display: flex; flex-direction: column; gap: 0.75rem; color: #475569; }
+        .info-card-details .detail-item { display: flex; align-items: flex-start; gap: 0.75rem; word-break: break-word; }
+        .info-card-details .detail-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary-color); margin-top: 2px;}
         .info-card-details a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
         .info-card-details a:hover { text-decoration: underline; }
         
         .swap-button {
-            position: absolute; bottom: 1rem; right: 1.25rem; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-            border-radius: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
-            transition: all 0.2s; display: flex; align-items: center; gap: 0.3rem;
+            position: absolute; bottom: 0.75rem; right: 1.25rem; background-color: var(--primary-color); color: white; border: none;
+            border-radius: 9999px; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
+            transition: background-color 0.2s; display: flex; align-items: center; gap: 0.25rem;
         }
-        .swap-button:hover { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
-        .swap-button.loading { cursor: not-allowed; background-color: #94a3b8; color: white; }
+        .swap-button:hover { background-color: var(--primary-color-hover); }
+        .swap-button.loading { cursor: not-allowed; background-color: #94a3b8; }
         
-        .day-summary-card { background-color: #f0f9ff; border: 1px solid #bae6fd; border-left-width: 5px; border-left-color: var(--primary-color); padding: 1.25rem 1.5rem; margin-bottom: 2rem; border-radius: 0.5rem; }
+        .day-summary-card { background-color: #f0f9ff; border: 1px solid #bae6fd; border-left-width: 5px; border-left-color: var(--primary-color); padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 0.5rem; }
 
-        #map-container { width: 100%; height: 60vh; border-radius: 0.75rem; overflow: hidden; background-color: #e2e8f0; }
+        #map-container { width: 100%; height: 55vh; border-radius: 0.75rem; overflow: hidden; background-color: #e2e8f0; }
         .day-toggle-btn { transition: all 0.2s ease-in-out; }
         .day-toggle-btn-active { background-color: var(--primary-color) !important; color: white !important; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
         .map-leg-detail-link { display: block; text-decoration: none; }
-        .map-leg-detail { background-color: #fff; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; transition: background-color 0.2s, box-shadow 0.2s; cursor: pointer; }
-        .map-leg-detail-link:hover .map-leg-detail { background-color: #f0f9ff; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+        .map-leg-detail { background-color: #f8fafc; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; transition: background-color 0.2s; cursor: pointer; }
+        .map-leg-detail-link:hover .map-leg-detail { background-color: #e0f2fe; }
         .map-leg-detail.highlighted { background-color: #e0f2fe; }
-
-        .action-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background-color: #fff;
-            color: #475569;
-            font-weight: 600;
-            padding: 0.6rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #cbd5e1;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        }
-        .action-btn:hover {
-            border-color: #94a3b8;
-            color: #1e293b;
-        }
     </style>
-    <!-- Google Maps API script with the provided key. -->
+    <!-- Google Maps API 腳本 (ADDED places library) -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY&callback=initMap&libraries=marker,routes,geocoding,places"></script>
 </head>
 <body class="antialiased">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <!-- Main Title and Subtitle -->
-        <div class="text-center mb-8 sm:mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師</h1>
+        <div class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.8</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
 
-        <!-- Input Form Section -->
-        <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-            <div class="text-center mb-8 border-b border-slate-200 pb-6">
-                <h2 class="text-2xl font-bold text-slate-800">開始規劃您的旅程</h2>
-                <p class="text-slate-500 mt-2">請填寫以下偏好，讓 AI 為您生成專屬行程。</p>
-            </div>
-            <!-- Increased gaps for better spacing -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
-                <!-- Left Column of Inputs -->
-                <div class="space-y-8">
+        <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+                <!-- Left Column -->
+                <div class="space-y-6">
                     <div>
-                        <label for="destination" class="block text-md font-medium text-slate-700 mb-3">🌍 目的地</label>
-                        <input type="text" id="destination" name="destination" class="form-input w-full p-3 border rounded-lg shadow-sm" placeholder="例如：日本京都、瑞士少女峰" required>
-                        <p id="destination-error" class="error-text hidden"></p>
+                        <label for="destination" class="block text-md font-medium text-slate-700 mb-2">🌍 目的地</label>
+                        <input type="text" id="destination" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="例如：日本京都、瑞士少女峰" required>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="days" class="block text-md font-medium text-slate-700 mb-3">⏳ 總天數</label>
-                            <input type="number" id="days" name="days" class="form-input w-full p-3 border rounded-lg shadow-sm" placeholder="例如：5" min="1" required>
-                            <p id="days-error" class="error-text hidden"></p>
+                            <label for="days" class="block text-md font-medium text-slate-700 mb-2">⏳ 總天數</label>
+                            <input type="number" id="days" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="例如：5" min="1" required>
                         </div>
                         <div>
-                            <label for="date-picker" class="block text-md font-medium text-slate-700 mb-3">🗓️ 出發日期</label>
-                            <input type="text" id="date-picker" name="date" class="form-input w-full p-3 border rounded-lg shadow-sm" placeholder="選擇出發日期" required>
-                            <p id="date-error" class="error-text hidden"></p>
+                            <label for="date-picker" class="block text-md font-medium text-slate-700 mb-2">🗓️ 出發日期</label>
+                            <input type="text" id="date-picker" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white" placeholder="選擇出發日期" required>
                         </div>
                     </div>
                     <div>
-                        <label for="traveler-type" class="block text-md font-medium text-slate-700 mb-3">✈️ 旅行者類型</label>
-                        <select id="traveler-type" class="form-input w-full p-3 border rounded-lg shadow-sm">
+                        <label for="traveler-type" class="block text-md font-medium text-slate-700 mb-2">✈️ 旅行者類型</label>
+                        <select id="traveler-type" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white">
                             <option>情侶蜜月</option><option>親子家庭</option><option>獨自背包探險</option><option>三五好友輕旅行</option><option>退休樂活族</option><option>商務差旅</option>
                         </select>
                     </div>
-                   <div>
-                        <label for="transport" class="block text-md font-medium text-slate-700 mb-3">🚇 主要交通方式</label>
-                        <select id="transport" class="form-input w-full p-3 border rounded-lg shadow-sm">
+                     <div>
+                        <label for="transport" class="block text-md font-medium text-slate-700 mb-2">🚇 主要交通方式</label>
+                        <select id="transport" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white">
                             <option value="混合(大眾運輸為主)">混合(大眾運輸為主)</option>
                             <option value="租車自駕">租車自駕</option>
                         </select>
                     </div>
                 </div>
-                <!-- Right Column of Inputs -->
-                <div class="space-y-8">
-                   <div class="grid grid-cols-2 gap-4">
+                <!-- Right Column -->
+                <div class="space-y-6">
+                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="pacing" class="block text-md font-medium text-slate-700 mb-3">🏃‍♂️ 旅行步調</label>
-                            <select id="pacing" class="form-input w-full p-3 border rounded-lg shadow-sm">
+                            <label for="pacing" class="block text-md font-medium text-slate-700 mb-2">🏃‍♂️ 旅行步調</label>
+                            <select id="pacing" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white">
                                 <option value="標準適中">標準適中 (預設)</option>
                                 <option value="悠閒放鬆">悠閒放鬆</option>
                                 <option value="緊湊充實">緊湊充實</option>
                             </select>
                         </div>
                         <div>
-                            <label for="budget" class="block text-md font-medium text-slate-700 mb-3">💰 預算等級</label>
-                            <select id="budget" class="form-input w-full p-3 border rounded-lg shadow-sm">
+                            <label for="budget" class="block text-md font-medium text-slate-700 mb-2">💰 預算等級</label>
+                            <select id="budget" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white">
                                 <option value="平衡舒適">平衡舒適 (預設)</option>
                                 <option value="經濟實惠">經濟實惠</option>
                                 <option value="奢華享受">奢華享受</option>
@@ -194,68 +145,55 @@
                         </div>
                     </div>
                     <div class="flex flex-col h-full">
-                        <label class="block text-md font-medium text-slate-700 mb-3">🎨 主要興趣偏好 (選填)</label>
-                        <div id="interest-tags-container" class="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg bg-slate-100 min-h-[50px] items-center flex-grow focus-within:bg-white focus-within:border-cyan-500 focus-within:ring-2 focus-within:ring-cyan-500">
+                        <label class="block text-md font-medium text-slate-700">🎨 主要興趣偏好 (選填)</label>
+                        <div id="interest-tags-container" class="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg bg-slate-50 mt-2 min-h-[50px] items-center flex-grow">
                             <input type="text" id="interest-input" class="flex-grow bg-transparent focus:outline-none" placeholder="輸入後按 Enter 新增...">
                         </div>
-                        <div id="suggested-tags" class="flex flex-wrap gap-2 mt-3"></div>
+                        <div id="suggested-tags" class="flex flex-wrap gap-2 mt-2"></div>
                     </div>
                 </div>
             </div>
-            <div class="mt-10 text-center">
-                <button id="generate-btn" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-12 rounded-full shadow-lg hover:shadow-cyan-500/50 transform hover:scale-105 transition-all duration-300 ease-in-out flex items-center justify-center mx-auto gap-2">
+            <div class="mt-8 text-center">
+                <button id="generate-btn" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-12 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out flex items-center justify-center mx-auto gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L11.8 9.2a1.21 1.21 0 0 0 0 1.72l5.8 5.8a1.21 1.21 0 0 0 1.72 0l6.84-6.84a1.21 1.21 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-2"/><path d="M11 11 8 8"/><path d="M15 15l3 3"/><path d="m5 21 3-3"/></svg>
                     <span>生成靈感行程</span>
                 </button>
             </div>
         </div>
 
-        <!-- Loading Indicator -->
-        <div id="loader" class="hidden text-center my-10 p-8">
+
+        <div id="loader" class="hidden text-center my-10">
             <svg class="animate-spin h-12 w-12 text-cyan-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p class="mt-4 text-slate-600 font-medium text-lg">AI 正在揮動魔法棒，為您客製化專屬行程...</p>
+            <p class="mt-4 text-slate-600 font-medium">AI 正在揮動魔法棒，為您客製化專屬行程...</p>
             <p id="travel-tip" class="mt-3 text-sm text-slate-500 h-5"></p>
         </div>
         
-        <!-- Error Message Display -->
         <div id="error-message" class="hidden text-center my-10 max-w-2xl mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg"></div>
 
-        <!-- Result Section Wrapper -->
-        <div id="result-wrapper" class="hidden mt-12 max-w-7xl mx-auto">
-             <!-- Tabs for different views and Action Buttons -->
+        <div id="result-wrapper" class="hidden mt-10 max-w-7xl mx-auto">
              <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                  <div class="border-b border-slate-200"><nav class="-mb-px flex space-x-2 sm:space-x-6" aria-label="Tabs">
-                     <button id="tab-visual" class="whitespace-nowrap pb-3 pt-1 px-1 border-b-2 font-medium text-base sm:text-lg">✨ 視覺化行程</button>
-                     <button id="tab-text" class="whitespace-nowrap pb-3 pt-1 px-1 border-b-2 font-medium text-base sm:text-lg">📄 純文字版</button>
-                     <button id="tab-map" class="whitespace-nowrap pb-3 pt-1 px-1 border-b-2 font-medium text-base sm:text-lg">📍 地圖模式</button>
+                     <button id="tab-visual" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">✨ 視覺化行程</button>
+                     <button id="tab-text" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📄 純文字版</button>
+                     <button id="tab-map" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📍 地圖模式</button>
                  </nav></div>
-                 <div class="flex items-center gap-3">
-                     <button id="copy-btn" class="action-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                        <span>複製</span>
-                    </button>
-                     <button id="export-pdf-btn" class="action-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
-                        <span>匯出PDF</span>
-                    </button>
-                     <button id="reset-btn" class="action-btn hover:bg-red-500 hover:text-white hover:border-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
-                        <span>重新規劃</span>
-                    </button>
+                 <div class="flex items-center gap-2">
+                     <button id="copy-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">複製文字</button>
+                     <button id="export-pdf-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">匯出 PDF</button>
+                     <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">重新規劃</button>
                  </div>
              </div>
-             <!-- Container for the results -->
-             <div id="result-container" class="bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-lg">
+             <div id="result-container" class="bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-xl">
                  <div id="result-visual"></div>
                  <div id="result-text" class="hidden prose max-w-none"></div>
                  <div id="result-map" class="hidden">
                      <div id="day-toggles-container" class="flex flex-wrap gap-2 mb-4"></div>
                      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                          <div class="md:col-span-8 lg:col-span-9">
-                             <div id="map-container"></div>
+                              <div id="map-container"></div>
                          </div>
-                         <div class="md:col-span-4 lg:col-span-3 max-h-[60vh] overflow-y-auto pr-2">
-                             <div id="map-details-container" class="space-y-3"></div>
+                         <div class="md:col-span-4 lg:col-span-3 max-h-[55vh] overflow-y-auto pr-2">
+                              <div id="map-details-container" class="space-y-3"></div>
                          </div>
                      </div>
                  </div>
@@ -264,7 +202,7 @@
     </div>
 
     <script>
-    // --- Global Variables ---
+    // --- 全域變數 ---
     let map;
     let placesService;
     let directionsService;
@@ -274,7 +212,7 @@
     let renderers = []; 
     let travelTipsInterval;
 
-    // --- Google Maps Initialization ---
+    // --- Google Maps 初始化 ---
     function initMap() {
         if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
             console.error("Google Maps API script failed to load.");
@@ -286,7 +224,7 @@
         map = new google.maps.Map(document.getElementById("map-container"), {
             center: taipei,
             zoom: 12,
-            mapId: 'DEMO_MAP_ID',
+            mapId: 'DEMO_MAP_ID', // Replace with your Map ID for production
             streetViewControl: false,
             mapTypeControl: false,
         });
@@ -305,6 +243,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         // --- API KEYS ---
+        // IMPORTANT: Replace with your actual Gemini API Key
         const GEMINI_API_KEY = "";
 
         // --- UI Elements ---
@@ -338,14 +277,7 @@
             transport: document.getElementById('transport'),
         };
         
-        // --- Application State ---
-        let state = { 
-            selectedInterests: [], 
-            rawMarkdownContent: '' 
-        };
-        // [FIX] Declare allGeocodedLocations in a higher scope to be accessible by map rendering functions.
-        let allGeocodedLocations = []; 
-
+        let state = { selectedInterests: [], rawMarkdownContent: '' };
         const suggestedInterests = ['美食探索', '自然風光', '歷史古蹟', '購物血拼', '動漫文化', '夜生活體驗', '藝術展覽', '登山健行', '海灘戲水', '博物館參觀', '咖啡廳巡禮', '文創市集', '親子樂園', 'SPA按摩', '攝影旅拍', '溫泉放鬆'];
         const travelTips = [
             "小提示：下載 Google 翻譯的離線語言包，沒有網路也能溝通！", "小提示：日本大部分店家不接受議價喔！", "小提示：在歐洲，給服務生小費是對他們服務的肯定。", "小提示：出發前，用手機拍下護照和重要文件以防萬一。", "小提示：帶一個可重複使用的水瓶，環保又省錢。", "AI 正在為您尋找當地人才知道的秘境...", "AI 正在為您規劃最順暢的交通路線...", "AI 正在確認各個景點的營業時間..."
@@ -356,14 +288,14 @@
             Array.from(ui.tagsContainer.children).forEach(child => child !== ui.interestInput && ui.tagsContainer.removeChild(child));
             state.selectedInterests.forEach(tagText => {
                 const tagEl = document.createElement('span');
-                tagEl.className = 'flex items-center bg-cyan-600 text-white text-sm font-medium pl-3 pr-2 py-1 rounded-full';
+                tagEl.className = 'flex items-center bg-cyan-600 text-white text-sm font-medium pl-3 pr-2 py-1 rounded-full cursor-pointer';
                 tagEl.textContent = tagText;
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'ml-2 text-white/70 hover:text-white focus:outline-none';
-                removeBtn.innerHTML = '×';
+                removeBtn.innerHTML = '&times;';
                 removeBtn.onclick = () => {
                     state.selectedInterests = state.selectedInterests.filter(t => t !== tagText);
-                    renderTags(); 
+                    renderTags();
                 };
                 tagEl.appendChild(removeBtn);
                 ui.tagsContainer.insertBefore(tagEl, ui.interestInput);
@@ -375,15 +307,9 @@
             ui.suggestedTagsContainer.innerHTML = ''; 
             suggestedInterests.forEach(tagText => {
                 const tagEl = document.createElement('button');
-                tagEl.className = 'bg-slate-200 text-slate-600 text-sm font-medium px-3 py-1.5 rounded-full hover:bg-slate-300 hover:text-slate-800 transform transition-all hover:scale-105';
+                tagEl.className = 'bg-slate-200 text-slate-700 text-sm font-medium px-3 py-1 rounded-full hover:bg-slate-300 transform transition-transform hover:scale-105';
                 tagEl.textContent = `+ ${tagText}`;
-                tagEl.onclick = (e) => { 
-                    e.preventDefault(); 
-                    if (!state.selectedInterests.includes(tagText)) { 
-                        state.selectedInterests.push(tagText); 
-                        renderTags(); 
-                    } 
-                };
+                tagEl.onclick = (e) => { e.preventDefault(); if (!state.selectedInterests.includes(tagText)) { state.selectedInterests.push(tagText); renderTags(); } };
                 ui.suggestedTagsContainer.appendChild(tagEl);
             });
         }
@@ -392,16 +318,13 @@
             if (e.key === 'Enter' && ui.interestInput.value.trim() !== '') {
                 e.preventDefault();
                 const newTag = ui.interestInput.value.trim();
-                if (!state.selectedInterests.includes(newTag)) { 
-                    state.selectedInterests.push(newTag); 
-                    renderTags(); 
-                }
+                if (!state.selectedInterests.includes(newTag)) { state.selectedInterests.push(newTag); renderTags(); }
                 ui.interestInput.value = '';
             }
         });
         
         // --- Initialization ---
-        flatpickr(ui.datePicker, { dateFormat: "Y-m-d", locale: "zh_tw" });
+        flatpickr(ui.datePicker, { dateFormat: "Y年m月d日", locale: "zh_tw" });
         renderSuggestedTags();
         
         // --- Event Listeners ---
@@ -413,41 +336,6 @@
         ui.resetBtn.addEventListener('click', resetForm);
         ui.exportPdfBtn.addEventListener('click', handleExportPDF);
 
-        ['destination', 'days', 'date-picker'].forEach(id => {
-            document.getElementById(id).addEventListener('input', () => validateField(id));
-        });
-
-        // --- UI Control & Validation Functions ---
-        function validateField(id) {
-            const input = document.getElementById(id);
-            const errorEl = document.getElementById(id + '-error');
-            let isValid = true;
-            let errorMessage = '';
-
-            if (!input.value.trim()) {
-                isValid = false;
-                errorMessage = '此為必填欄位';
-            }
-
-            input.classList.toggle('is-invalid', !isValid);
-            if (errorEl) {
-                errorEl.textContent = errorMessage;
-                errorEl.classList.toggle('hidden', isValid);
-            }
-            return isValid;
-        }
-
-        function validateForm() {
-            const requiredFields = ['destination', 'days', 'date-picker'];
-            let isFormValid = true;
-            requiredFields.forEach(id => {
-                if (!validateField(id)) {
-                    isFormValid = false;
-                }
-            });
-            return isFormValid;
-        }
-
         function switchTab(tabName) {
             const tabs = { visual: ui.resultVisual, text: ui.resultText, map: ui.resultMap };
             const tabButtons = { visual: ui.tabVisual, text: ui.tabText, map: ui.tabMap };
@@ -455,16 +343,16 @@
             for (const key in tabs) {
                 const isCurrent = key === tabName;
                 tabs[key].classList.toggle('hidden', !isCurrent);
-                tabButtons[key].className = `whitespace-nowrap pb-3 pt-1 px-1 border-b-2 font-medium text-base sm:text-lg ${isCurrent ? 'text-cyan-600 border-cyan-600' : 'text-slate-500 border-transparent hover:text-slate-700 hover:border-slate-300'}`;
+                tabButtons[key].className = `whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg ${isCurrent ? 'text-cyan-600 border-cyan-600' : 'text-slate-500 hover:text-slate-700 hover:border-slate-300'}`;
             }
             
             if (tabName === 'map' && dailyLocations.length > 0 && ui.dayTogglesContainer.children.length > 0) {
                  const firstDayButton = ui.dayTogglesContainer.querySelector('button');
                  if(firstDayButton && !firstDayButton.classList.contains('day-toggle-btn-active')) {
-                   firstDayButton.click();
+                    firstDayButton.click();
                  }
                  setTimeout(() => {
-                     if(map) google.maps.event.trigger(map, 'resize');
+                    if(map) google.maps.event.trigger(map, 'resize');
                  }, 100);
             }
         }
@@ -472,10 +360,8 @@
         function resetForm() {
             ui.resultWrapper.classList.add('hidden');
             ui.inputForm.classList.remove('hidden');
-            ['destination', 'days', 'date-picker'].forEach(id => {
-                document.getElementById(id).value = '';
-                validateField(id); 
-            });
+            ui.destination.value = '';
+            ui.days.value = '';
             ui.datePicker._flatpickr.clear();
             state.selectedInterests = [];
             renderTags();
@@ -488,13 +374,9 @@
         function copyTextToClipboard() {
             if (!state.rawMarkdownContent) return;
             navigator.clipboard.writeText(state.rawMarkdownContent).then(() => {
-                const originalText = ui.copyBtn.querySelector('span').textContent;
-                ui.copyBtn.querySelector('span').textContent = '已複製!';
-                ui.copyBtn.classList.add('bg-green-100', 'border-green-300');
-                setTimeout(() => { 
-                    ui.copyBtn.querySelector('span').textContent = originalText; 
-                    ui.copyBtn.classList.remove('bg-green-100', 'border-green-300');
-                }, 2000);
+                const originalText = ui.copyBtn.textContent;
+                ui.copyBtn.textContent = '已複製!';
+                setTimeout(() => { ui.copyBtn.textContent = originalText; }, 2000);
             }).catch(err => {
                 console.error('無法複製文字: ', err);
                 alert('複製失敗，您的瀏覽器可能不支援此功能。');
@@ -504,60 +386,56 @@
         const icons = {
             description: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/></svg>`,
             hours: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
-            transport: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M10 17.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-2.14a.5.5 0 0 0-.09-.28L12.5 12.5H12l-1.41 2.58a.5.5 0 0 0-.09.28V17.5Z"/><path d="M8 17.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-2.14a.5.5 0 0 1 .09-.28L4.5 12.5H5l1.41 2.58a.5.5 0 0 1 .09.28V17.5Z"/><path d="M16 17.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-2.14a.5.5 0 0 0-.09-.28L19.5 12.5H19l-1.41 2.58a.5.5 0 0 0-.09.28V17.5Z"/><path d="M8.5 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M15.5 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M4 8h16"/></svg>`,
+            transport: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><rect width="18" height="12" x="3" y="5" rx="2"/><path d="M3 11h18"/><path d="m8 17-2 4"/><path d="m18 17-2 4"/></svg>`,
             money: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
             youtube: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M2.5 17a24.12 24.12 0 0 1 0-10C2.5 6 4.5 4 7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z"/><path d="m10 9 5 3-5 3Z"/></svg>`,
-            booking: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>`,
-            tip: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M15.03 5.3a.5.5 0 0 1 .74.03l3.5 4a.5.5 0 0 1-.03.74l-3.5 4a.5.5 0 0 1-.74-.03L12 9.57a.5.5 0 0 1 0-.14L15.03 5.3Z"/><path d="M4.5 12H12"/><path d="M19.5 12h-2.5"/><path d="M9 17h.01"/><path d="M4.5 17h.01"/><path d="M12 17h.01"/></svg>`,
-            planB: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="m15.5 15.5-5-5"/><path d="m10.5 15.5 5-5"/></svg>`,
+            booking: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/><path d="M20 12v4H4v-4"/><path d="M20 8.5V4H4v4.5"/><path d="M16 4.5V2"/><path d="M8 4.5V2"/><path d="M4 12h16"/></svg>`,
+            tip: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M12 2.69l.346.666L19.5 15.3l-1.846 3.199H6.346L4.5 15.3l7.154-11.934z"/><path d="M12 22v-3"/><path d="M8 22h8"/></svg>`,
+            planB: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon"><path d="M22 12a10.06 10.06 0 0 0-2-5.85"/><path d="M3.5 14.29A9.95 9.95 0 0 0 2 18.5"/><path d="M22 18.5c0-1.79-1.09-4.39-2-5.85"/><path d="M2 12a10.06 10.06 0 0 1 2-5.85"/><path d="M12 2a10.06 10.06 0 0 1 5.85 2"/><path d="M12 22a10.06 10.06 0 0 0-5.85-2"/><path d="M18.35 14.29A9.95 9.95 0 0 1 22 18.5"/><path d="M5.65 9.71A9.95 9.95 0 0 1 2 5.5"/><path d="M5.65 14.29A9.95 9.95 0 0 0 2 18.5"/><path d="M18.35 9.71A9.95 9.95 0 0 0 22 5.5"/></svg>`,
         };
         
-        // --- Visual Rendering Functions ---
+        // --- Visual Rendering (FIXED LOGIC) ---
         function renderVisualVersion(htmlContent) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
             const visualContent = document.createDocumentFragment();
             
-            let introNode = tempDiv.firstChild;
-            while(introNode && introNode.tagName !== 'H2') {
-                visualContent.appendChild(introNode.cloneNode(true));
-                introNode = introNode.nextElementSibling;
+            let currentNode = tempDiv.firstChild;
+            while(currentNode && currentNode.tagName !== 'H2') {
+                visualContent.appendChild(currentNode.cloneNode(true));
+                currentNode = currentNode.nextElementSibling;
             }
 
-            const allNodes = Array.from(tempDiv.childNodes);
-            const h2Indexes = allNodes.reduce((acc, node, index) => {
-                if (node.tagName === 'H2') acc.push(index);
-                return acc;
-            }, []);
-
-            h2Indexes.forEach((startIndex, i) => {
-                const endIndex = (i + 1 < h2Indexes.length) ? h2Indexes[i + 1] : allNodes.length;
-                const dayNodes = allNodes.slice(startIndex, endIndex);
-
-                let itemIndex = 0;
-                dayNodes.forEach(node => {
-                    if (node.tagName === 'UL' && node.querySelector('a[href*="google.com/maps/search"]')) {
+            const daySections = tempDiv.querySelectorAll('h2');
+            daySections.forEach((h2, dayIndex) => {
+                visualContent.appendChild(h2.cloneNode(true));
+                
+                let element = h2.nextElementSibling;
+                let itemIndex = 0; 
+                
+                while (element && element.tagName !== 'H2') {
+                    if (element.tagName === 'UL' && (element.querySelector('li').textContent.includes('本日主題') || element.querySelector('li').textContent.includes('預計花費'))) {
+                        visualContent.appendChild(createDaySummaryCard(element));
+                    } 
+                    else if (element.tagName === 'H3') {
+                        visualContent.appendChild(element.cloneNode(true));
+                    }
+                    else if (element.tagName === 'UL' && element.querySelector('a[href*="google.com/maps/search"]')) {
                         const cardContainer = document.createElement('div');
                         cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6';
                         
-                        Array.from(node.children).forEach(li => {
+                        Array.from(element.children).forEach(li => {
                             const mainLink = li.querySelector('a');
                             if (mainLink && mainLink.parentElement === li && mainLink.href.startsWith('https://www.google.com/maps/search/')) {
-                                const dayIndex = i;
                                 const cardId = `card-${dayIndex}-${itemIndex}`;
                                 cardContainer.appendChild(createLocationCard(li.innerHTML, cardId, dayIndex, itemIndex));
                                 itemIndex++;
                             }
                         });
                         visualContent.appendChild(cardContainer);
-                    } 
-                    else if (node.tagName === 'UL' && (node.textContent.includes('本日主題') || node.textContent.includes('預計花費'))) {
-                         visualContent.appendChild(createDaySummaryCard(node));
                     }
-                    else {
-                        visualContent.appendChild(node.cloneNode(true));
-                    }
-                });
+                    element = element.nextElementSibling;
+                }
             });
 
             ui.resultVisual.innerHTML = '';
@@ -567,7 +445,7 @@
         function createDaySummaryCard(ulElement) {
             const card = document.createElement('div');
             card.className = 'day-summary-card';
-            const content = ulElement.innerHTML.replace(/<li>/g, '<div class="flex items-center gap-3 mb-1.5 text-slate-700">').replace(/<\/li>/g, '</div>');
+            const content = ulElement.innerHTML.replace(/<li>/g, '<div class="flex items-center gap-2 mb-1">').replace(/<\/li>/g, '</div>');
             card.innerHTML = content;
             return card;
         }
@@ -582,9 +460,10 @@
             card.dataset.cardId = cardId;
 
             const mainLink = tempLi.querySelector('a');
-            const locationName = mainLink.textContent.replace(/📍|🍜|/g, '').trim();
+            const locationName = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
             
             const imageLink = document.createElement('a');
+            // MODIFICATION: Use location name for the image link query to go directly to the venue page.
             imageLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationName)}`;
             imageLink.target = '_blank';
             imageLink.rel = 'noopener noreferrer';
@@ -592,7 +471,7 @@
             
             const imageContainer = document.createElement('div');
             imageContainer.className = 'info-card-image-container';
-            imageContainer.innerHTML = `<div class="animate-pulse bg-gray-200 w-full h-full"></div>`; 
+            imageContainer.innerHTML = `<div class="animate-pulse bg-gray-300 w-full h-full"></div>`;
             imageLink.appendChild(imageContainer);
             
             const overlay = document.createElement('div');
@@ -635,9 +514,7 @@
 
             const swapBtn = document.createElement('button');
             swapBtn.className = 'swap-button';
-            swapBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
-                <span>換一個</span>`;
+            swapBtn.innerHTML = `🔄 換一個`;
             swapBtn.dataset.dayIndex = dayIndex;
             swapBtn.dataset.itemIndex = itemIndex;
             swapBtn.dataset.locationName = locationName;
@@ -675,12 +552,11 @@
         
         async function handleSwap(event) {
             const button = event.currentTarget;
-            const buttonSpan = button.querySelector('span');
             const { dayIndex, itemIndex, locationName } = button.dataset;
             const cardId = `card-${dayIndex}-${itemIndex}`;
             const cardElement = document.getElementById(cardId);
             
-            buttonSpan.textContent = 'AI 思考中...';
+            button.innerHTML = 'AI 思考中...';
             button.classList.add('loading');
             button.disabled = true;
 
@@ -708,7 +584,7 @@
                         tempDiv.innerHTML = marked.parse(newMarkdownLi);
                         const newLiHTML = tempDiv.querySelector('li').innerHTML;
                         
-                        const newCard = createLocationCard(newLiHTML, cardId, parseInt(dayIndex), parseInt(itemIndex));
+                        const newCard = createLocationCard(newLiHTML, cardId, dayIndex, itemIndex);
                         cardElement.replaceWith(newCard);
                         
                         const newLocationName = newCard.querySelector('.info-card-image-overlay').textContent;
@@ -721,7 +597,7 @@
                         
                         const currentDayToggle = ui.dayTogglesContainer.querySelector('.day-toggle-btn-active');
                         if (currentDayToggle && ui.dayTogglesContainer.children[dayIndex] === currentDayToggle) {
-                            displayRouteForDay(parseInt(dayIndex));
+                            displayRouteForDay(dayIndex);
                         }
 
                     } else {
@@ -733,12 +609,12 @@
 
             } catch (error) {
                 console.error("更換建議時發生錯誤:", error);
-                buttonSpan.textContent = '更換失敗';
+                button.innerHTML = '更換失敗';
             } finally {
                  setTimeout(() => {
-                     buttonSpan.textContent = '換一個';
-                     button.classList.remove('loading');
-                     button.disabled = false;
+                    button.innerHTML = '🔄 換一個';
+                    button.classList.remove('loading');
+                    button.disabled = false;
                  }, 2000);
             }
         }
@@ -754,7 +630,7 @@
 
             html2canvas(resultContainer, {
                 useCORS: true,
-                scale: 2, 
+                scale: 2,
                 onclone: (doc) => {
                     doc.querySelectorAll('.swap-button, .info-card.highlighted').forEach(el => {
                         if (el.classList.contains('swap-button')) el.style.display = 'none';
@@ -776,7 +652,6 @@
             });
         }
         
-        // --- Map-Related Functions ---
         function parseItineraryForMap(htmlContent) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
@@ -795,7 +670,7 @@
                          Array.from(element.children).forEach(li => {
                              const mainLink = li.querySelector('a');
                              if (mainLink && mainLink.parentElement === li && mainLink.href.includes('google.com/maps/search/')) {
-                                 const name = mainLink.textContent.replace(/📍|🍜|/g, '').trim();
+                                 const name = mainLink.textContent.replace(/📍|🍜|�/g, '').trim();
                                  const url = new URL(mainLink.href);
                                  const query = url.searchParams.get('query');
                                  if (name && query) {
@@ -819,7 +694,7 @@
             dailyLocations.forEach((day, index) => {
                 const btn = document.createElement('button');
                 btn.textContent = day.title.split('：')[0];
-                btn.className = 'day-toggle-btn bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all border border-slate-300';
+                btn.className = 'day-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all';
                 btn.onclick = () => {
                     displayRouteForDay(index);
                     ui.dayTogglesContainer.querySelectorAll('button').forEach(b => b.classList.remove('day-toggle-btn-active'));
@@ -858,11 +733,10 @@
                 });
             });
 
-            // [FIX] Assign to the higher-scoped variable so other functions can access it.
-            allGeocodedLocations = (await Promise.all(placePromises)).filter(Boolean);
+            const allGeocodedLocations = (await Promise.all(placePromises)).filter(Boolean);
             
             if (allGeocodedLocations.length === 0) {
-                ui.mapDetailsContainer.innerHTML = '<p class="text-red-500 p-4 bg-red-50 rounded-lg">抱歉，此天的地點均無法在地圖上定位。</p>';
+                ui.mapDetailsContainer.innerHTML = '<p class="text-red-500">抱歉，此天的地點均無法在地圖上定位。</p>';
                 return;
             }
             
@@ -870,23 +744,20 @@
             const uniqueGeocodedLocations = [];
             const placeIdSet = new Set();
 
-            allGeocodedLocations.forEach((loc) => {
+            allGeocodedLocations.forEach((loc, i) => {
                 bounds.extend(loc.position);
-                if (!placeIdSet.has(loc.place_id)) {
-                    uniqueGeocodedLocations.push(loc);
-                    placeIdSet.add(loc.place_id);
-                }
-            });
-
-             allGeocodedLocations.forEach((loc, i) => {
                  const marker = new google.maps.marker.AdvancedMarkerElement({
                      position: loc.position, map, title: `${i + 1}. ${loc.name}`,
                      content: new google.maps.marker.PinElement({ glyph: `${i+1}`, scale: 1.2, background: '#0891b2', borderColor: '#ffffff', glyphColor: '#ffffff' }).element,
                  });
                  marker.addListener('click', () => highlightCardAndScroll(loc.cardId));
                  markers.push(marker);
+                 
+                 if (!placeIdSet.has(loc.place_id)) {
+                    uniqueGeocodedLocations.push(loc);
+                    placeIdSet.add(loc.place_id);
+                 }
             });
-            
             map.fitBounds(bounds);
         
             if (uniqueGeocodedLocations.length > 1) {
@@ -895,8 +766,7 @@
 
                 if (travelMode === google.maps.TravelMode.DRIVING) {
                     const request = {
-                        origin: uniqueGeocodedLocations[0].position, 
-                        destination: uniqueGeocodedLocations[uniqueGeocodedLocations.length - 1].position,
+                        origin: uniqueGeocodedLocations[0].position, destination: uniqueGeocodedLocations[uniqueGeocodedLocations.length - 1].position,
                         waypoints: uniqueGeocodedLocations.slice(1, -1).map(loc => ({ location: loc.position, stopover: true })),
                         travelMode: travelMode
                     };
@@ -906,58 +776,52 @@
                             renderMapDetails(response.routes[0].legs, uniqueGeocodedLocations, 0, travelMode);
                         } else {
                             console.error('Directions request failed due to ' + status);
-                            ui.mapDetailsContainer.innerHTML = `<p class="text-red-500 p-4 bg-red-50 rounded-lg">無法計算開車路線資訊：${status}</p>`;
+                            ui.mapDetailsContainer.innerHTML = `<p class="text-red-500">無法計算開車路線資訊：${status}</p>`;
                         }
                     });
-                } 
-                else { 
-                    const routePromises = uniqueGeocodedLocations.slice(0, -1).map((startLoc, i) => {
-                        const endLoc = uniqueGeocodedLocations[i + 1];
-                        const transitRequest = {
-                            origin: startLoc.position,
-                            destination: endLoc.position,
+                } else { // TRANSIT Mode with WALKING fallback
+                    for (let i = 0; i < uniqueGeocodedLocations.length - 1; i++) {
+                        const legRequest = {
+                            origin: uniqueGeocodedLocations[i].position,
+                            destination: uniqueGeocodedLocations[i + 1].position,
                             travelMode: google.maps.TravelMode.TRANSIT
                         };
                         
-                        return new Promise(resolve => {
-                            directionsService.route(transitRequest, (response, status) => {
+                        (function(index) {
+                            directionsService.route(legRequest, (response, status) => {
                                 if (status === google.maps.DirectionsStatus.OK) {
-                                    resolve({ response, status, locations: [startLoc, endLoc], index: i });
-                                } else {
-                                    console.warn(`Transit for leg ${i} failed (${status}), falling back to WALKING.`);
-                                    const walkingRequest = {...transitRequest, travelMode: google.maps.TravelMode.WALKING};
-                                    directionsService.route(walkingRequest, (walkResponse, walkStatus) => {
-                                        resolve({ response: walkResponse, status: walkStatus, locations: [startLoc, endLoc], index: i });
+                                    const legRenderer = new google.maps.DirectionsRenderer({
+                                        map: map, directions: response, suppressMarkers: true, preserveViewport: true,
+                                        polylineOptions: { strokeColor: '#06b6d4', strokeWeight: 5, strokeOpacity: 0.7 }
                                     });
+                                    renderers.push(legRenderer);
+                                    renderMapDetails(response.routes[0].legs, [uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1]], index, google.maps.TravelMode.TRANSIT);
+                                } else if (status === google.maps.DirectionsStatus.ZERO_RESULTS) {
+                                    console.warn(`Transit for leg ${index} failed, falling back to WALKING.`);
+                                    legRequest.travelMode = google.maps.TravelMode.WALKING;
+                                    directionsService.route(legRequest, (walkResponse, walkStatus) => {
+                                        if (walkStatus === google.maps.DirectionsStatus.OK) {
+                                            const legRenderer = new google.maps.DirectionsRenderer({
+                                                map: map, directions: walkResponse, suppressMarkers: true, preserveViewport: true,
+                                                polylineOptions: { strokeColor: '#16a34a', strokeWeight: 6, strokeOpacity: 0.8, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 }, offset: '0', repeat: '20px'}] }
+                                            });
+                                            renderers.push(legRenderer);
+                                            renderMapDetails(walkResponse.routes[0].legs, [uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1]], index, google.maps.TravelMode.WALKING);
+                                        } else {
+                                            console.error(`WALKING fallback for leg ${index} also failed: ${walkStatus}`);
+                                            renderErrorLeg(uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1], index);
+                                        }
+                                    });
+                                } else {
+                                    console.error(`Transit directions for leg ${index} failed: ${status}`);
+                                    renderErrorLeg(uniqueGeocodedLocations[index], uniqueGeocodedLocations[index + 1], index);
                                 }
                             });
-                        });
-                    });
-
-                    const allResults = await Promise.all(routePromises);
-
-                    allResults.forEach(result => {
-                        const { response, status, locations, index } = result;
-                        if (status === google.maps.DirectionsStatus.OK) {
-                            const travelMode = response.request.travelMode;
-                            const polylineOptions = travelMode === google.maps.TravelMode.WALKING 
-                                ? { strokeColor: '#16a34a', strokeWeight: 6, strokeOpacity: 0.8, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 }, offset: '0', repeat: '20px'}] }
-                                : { strokeColor: '#06b6d4', strokeWeight: 5, strokeOpacity: 0.7 };
-                                
-                            const legRenderer = new google.maps.DirectionsRenderer({
-                                map: map, directions: response, suppressMarkers: true, preserveViewport: true,
-                                polylineOptions
-                            });
-                            renderers.push(legRenderer);
-                            renderMapDetails(response.routes[0].legs, locations, index, travelMode);
-                        } else {
-                            console.error(`Route request for leg ${index} failed: ${status}`);
-                            renderErrorLeg(locations[0], locations[1], index);
-                        }
-                    });
+                        })(i);
+                    }
                 }
             } else if (uniqueGeocodedLocations.length <= 1) {
-                ui.mapDetailsContainer.innerHTML = '<p class="text-slate-500 p-4 bg-slate-50 rounded-lg">本日只有一個地點或所有地點都在同一處，無需規劃路線。</p>';
+                ui.mapDetailsContainer.innerHTML = '<p class="text-slate-500">本日只有一個地點或所有地點都在同一處，無需規劃路線。</p>';
             }
         }
         
@@ -977,24 +841,27 @@
                 const mode = travelModeOverride ? travelModeOverride.toLowerCase() : (ui.transport.value === '租車自駕' ? 'driving' : 'transit');
                 const icon = mode === 'driving' ? '🚗' : (mode === 'walking' ? '🚶' : '🚇');
                 
+                // MODIFICATION: Use location names for the directions link for clarity.
                 detailLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startLoc.name)}&destination=${encodeURIComponent(endLoc.name)}&travelmode=${mode}`;
 
                 const detailEl = document.createElement('div');
                 detailEl.className = 'map-leg-detail';
+                // MODIFICATION: Reworked the inner HTML for a cleaner route display.
                 detailEl.innerHTML = `
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3">
                         <div class="flex flex-col items-center self-stretch">
-                            <div class="bg-cyan-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0">${allGeocodedLocations.findIndex(l => l.place_id === startLoc.place_id) + 1}</div>
-                            <div class="h-full border-l-2 border-slate-300 border-dashed my-1.5"></div>
-                            <div class="bg-cyan-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0">${allGeocodedLocations.findIndex(l => l.place_id === endLoc.place_id) + 1}</div>
+                            <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${globalIndex + 1}</span>
+                            <div class="h-full border-l-2 border-slate-300 border-dashed my-1"></div>
+                            <span class="bg-cyan-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">${globalIndex + 2}</span>
                         </div>
                         <div class="flex-grow py-1">
-                             <p class="font-bold text-slate-800 leading-tight">${startLoc.name}</p>
-                             <p class="text-sm text-slate-500 my-2.5">${icon} 約 ${leg.duration.text} (${leg.distance.text})</p>
-                             <p class="font-bold text-slate-800 leading-tight">${endLoc.name}</p>
+                             <p class="font-bold text-slate-800">${startLoc.name}</p>
+                             <p class="text-sm text-slate-500 my-2">${icon} 約 ${leg.duration.text} (${leg.distance.text})</p>
+                             <p class="font-bold text-slate-800">${endLoc.name}</p>
                         </div>
                     </div>
                 `;
+                detailLink.appendChild(detailEl);
                 ui.mapDetailsContainer.appendChild(detailEl);
             });
         }
@@ -1003,18 +870,13 @@
             const errorDiv = document.createElement('div');
             errorDiv.className = 'map-leg-detail';
             errorDiv.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="flex flex-col items-center self-stretch">
-                        <div class="bg-slate-400 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0">${allGeocodedLocations.findIndex(l => l.place_id === startLoc.place_id) + 1}</div>
-                        <div class="h-full border-l-2 border-slate-300 border-dashed my-1.5"></div>
-                        <div class="bg-slate-400 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold flex-shrink-0">${allGeocodedLocations.findIndex(l => l.place_id === endLoc.place_id) + 1}</div>
-                    </div>
-                    <div class="flex-grow py-1">
-                        <p class="font-bold text-slate-800">${startLoc.name}</p>
-                        <p class="text-red-600 my-2.5">❌ 無法規劃此段路線</p>
-                        <p class="font-bold text-slate-800">${endLoc.name}</p>
-                    </div>
-                </div>`;
+                <p class="font-bold text-slate-800 flex items-center gap-2">
+                    <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">${index + 1}</span>
+                    <span>${startLoc.name}</span> <span class="text-slate-400">→</span>
+                    <span class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">${index + 2}</span>
+                    <span>${endLoc.name}</span>
+                </p>
+                <p class="text-red-600 mt-1 pl-8">無法規劃此段路線。</p>`;
             ui.mapDetailsContainer.appendChild(errorDiv);
         }
 
@@ -1032,9 +894,10 @@
         
         // --- Main Generation Logic ---
         async function handleGenerate() {
-            if (!validateForm()) {
+             if (!ui.destination.value || !ui.days.value || !ui.datePicker.value) {
+                alert('請務必填寫「目的地」、「總天數」和「出發日期」！');
                 return;
-            }
+             }
             ui.errorMessage.classList.add('hidden');
             ui.inputForm.classList.add('hidden');
             ui.loader.classList.remove('hidden');
@@ -1136,9 +999,9 @@ ${interestPrompt}
                     switchTab('visual');
                     ui.resultWrapper.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    let errorText = 'AI 未能回傳有效的行程內容。';
+                    let errorText = 'AI did not return a valid response.';
                     if(result.promptFeedback && result.promptFeedback.blockReason) {
-                        errorText += ` 原因: ${result.promptFeedback.blockReason}`;
+                        errorText += ` Reason: ${result.promptFeedback.blockReason}`;
                     }
                     throw new Error(errorText);
                 }
