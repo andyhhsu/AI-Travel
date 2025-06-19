@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v13.9.1</title>
+    <title>AI 旅遊行程規劃師 v13.9.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -96,7 +96,7 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.1</h1>
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.3</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
         
@@ -154,7 +154,8 @@
                             </select>
                         </div>
                     </div>
-                    <div class="flex flex-col h-full">
+                    <!-- MODIFIED: Removed h-full from this container to allow it to grow naturally with its content -->
+                    <div class="flex flex-col">
                         <label class="block text-md font-medium text-slate-700">🎨 主要興趣偏好 (選填)</label>
                         <div id="interest-tags-container" class="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg bg-slate-50 mt-2 min-h-[50px] items-center flex-grow">
                             <input type="text" id="interest-input" class="flex-grow bg-transparent focus:outline-none" placeholder="輸入後按 Enter 新增...">
@@ -182,31 +183,31 @@
 
         <div id="result-wrapper" class="hidden mt-10 max-w-7xl mx-auto">
              <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                 <div class="border-b border-slate-200"><nav class="-mb-px flex space-x-2 sm:space-x-6" aria-label="Tabs">
-                     <button id="tab-visual" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">✨ 視覺化行程</button>
-                     <button id="tab-text" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📄 純文字版</button>
-                     <button id="tab-map" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📍 地圖模式</button>
-                 </nav></div>
-                 <div class="flex items-center gap-2">
-                     <button id="copy-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">複製文字</button>
-                     <button id="export-pdf-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">匯出 PDF</button>
-                     <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">重新規劃</button>
-                 </div>
+                  <div class="border-b border-slate-200"><nav class="-mb-px flex space-x-2 sm:space-x-6" aria-label="Tabs">
+                        <button id="tab-visual" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">✨ 視覺化行程</button>
+                        <button id="tab-text" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📄 純文字版</button>
+                        <button id="tab-map" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-base sm:text-lg">📍 地圖模式</button>
+                  </nav></div>
+                  <div class="flex items-center gap-2">
+                        <button id="copy-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">複製文字</button>
+                        <button id="export-pdf-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">匯出 PDF</button>
+                        <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">重新規劃</button>
+                  </div>
              </div>
              <div id="result-container" class="bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-xl">
-                 <div id="result-visual"></div>
-                 <div id="result-text" class="hidden prose max-w-none"></div>
-                 <div id="result-map" class="hidden">
-                     <div id="day-toggles-container" class="flex flex-wrap gap-2 mb-4"></div>
-                     <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                         <div class="md:col-span-8 lg:col-span-9">
-                              <div id="map-container"></div>
-                         </div>
-                         <div class="md:col-span-4 lg:col-span-3 max-h-[55vh] overflow-y-auto pr-2">
-                              <div id="map-details-container" class="space-y-3"></div>
-                         </div>
-                     </div>
-                 </div>
+                  <div id="result-visual"></div>
+                  <div id="result-text" class="hidden prose max-w-none"></div>
+                  <div id="result-map" class="hidden">
+                        <div id="day-toggles-container" class="flex flex-wrap gap-2 mb-4"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <div class="md:col-span-8 lg:col-span-9">
+                                  <div id="map-container"></div>
+                            </div>
+                            <div class="md:col-span-4 lg:col-span-3 max-h-[55vh] overflow-y-auto pr-2">
+                                  <div id="map-details-container" class="space-y-3"></div>
+                            </div>
+                        </div>
+                  </div>
              </div>
         </div>
     </div>
@@ -255,7 +256,7 @@
         // --- API KEYS ---
         // 警告：請勿將 API 金鑰直接寫在前端程式碼中。此處為範例。
         // 建議您使用後端服務或環境變數來安全地管理金鑰。
-        const GEMINI_API_KEY = "AIzaSyC792BRnWglnao1MMUcc_M6DmO1cIZ4sd0"; // ！！！請在此處貼上您的 Google AI Studio API 金鑰
+        const GEMINI_API_KEY = "AIzaSyC792BRnWglnao1MMUcc_M6DmO1cIZ4sd0"; // ！！！金鑰已更新
 
         // --- UI Elements ---
         const ui = {
@@ -754,8 +755,8 @@
             allGeocodedLocations.forEach((loc, i) => {
                 bounds.extend(loc.position);
                  const marker = new google.maps.marker.AdvancedMarkerElement({
-                     position: loc.position, map, title: `${i + 1}. ${loc.name}`,
-                     content: new google.maps.marker.PinElement({ glyph: `${i+1}`, scale: 1.2, background: '#0891b2', borderColor: '#ffffff', glyphColor: '#ffffff' }).element,
+                       position: loc.position, map, title: `${i + 1}. ${loc.name}`,
+                       content: new google.maps.marker.PinElement({ glyph: `${i+1}`, scale: 1.2, background: '#0891b2', borderColor: '#ffffff', glyphColor: '#ffffff' }).element,
                  });
                  marker.addListener('click', () => highlightCardAndScroll(loc.cardId));
                  markers.push(marker);
@@ -842,7 +843,7 @@
         function renderMapDetails(legs, locations, travelMode) {
              legs.forEach((leg, i) => {
                  renderSingleMapDetail(leg, locations[i], locations[i+1], i, travelMode);
-            });
+             });
         }
         
         function renderSingleMapDetail(leg, startLoc, endLoc, index, travelMode) {
@@ -1019,7 +1020,7 @@ ${interestPrompt}
 `;
             try {
                 const apiKey = GEMINI_API_KEY; 
-                if (!apiKey) {
+                if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") { // <-- CORRECTED THIS LINE
                     throw new Error("Gemini API Key is missing. 請在程式碼中填入您的金鑰。");
                 }
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
