@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v13.9.4</title>
+    <title>AI 旅遊行程規劃師 v13.9.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -88,6 +88,13 @@
         .map-leg-detail { background-color: #f8fafc; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; transition: background-color 0.2s; cursor: pointer; }
         .map-leg-detail-link:hover .map-leg-detail { background-color: #e0f2fe; }
         .map-leg-detail.highlighted { background-color: #e0f2fe; }
+        
+        /* UPDATED: Styles for suggested tags */
+        #suggested-tags {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
     </style>
     <!-- Google Maps API 腳本 (ADDED places library) -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY&callback=initMap&libraries=marker,routes,geocoding,places"></script>
@@ -96,7 +103,7 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.4</h1>
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.5</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
         
@@ -159,7 +166,7 @@
                         <div id="interest-tags-container" class="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg bg-slate-50 mt-2 min-h-[50px] items-center flex-grow">
                             <input type="text" id="interest-input" class="flex-grow bg-transparent focus:outline-none" placeholder="輸入後按 Enter 新增...">
                         </div>
-                        <div id="suggested-tags" class="flex flex-wrap gap-2 mt-2"></div>
+                        <div id="suggested-tags" class="mt-2"></div>
                     </div>
                 </div>
             </div>
@@ -319,7 +326,7 @@
             ui.suggestedTagsContainer.innerHTML = ''; 
             suggestedInterests.forEach(tagText => {
                 const tagEl = document.createElement('button');
-                tagEl.className = 'bg-slate-200 text-slate-700 text-sm font-medium px-3 py-1 rounded-full hover:bg-slate-300 transform transition-transform hover:scale-105';
+                tagEl.className = 'bg-slate-200 text-slate-700 text-sm font-medium px-3 py-1.5 rounded-full hover:bg-slate-300 transform transition-transform hover:scale-105 text-center';
                 tagEl.textContent = `+ ${tagText}`;
                 tagEl.onclick = (e) => { e.preventDefault(); if (!state.selectedInterests.includes(tagText)) { state.selectedInterests.push(tagText); renderTags(); } };
                 ui.suggestedTagsContainer.appendChild(tagEl);
@@ -450,7 +457,6 @@
                         let nextUl = element.nextElementSibling;
                         if (nextUl && nextUl.tagName === 'UL' && nextUl.querySelector('a[href*="google.com/maps/search"]')) {
                             const cardContainer = document.createElement('div');
-                            // UPDATED: Changed grid to md:grid-cols-2 for a two-column layout
                             cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
                             
                             Array.from(nextUl.children).forEach(li => {
@@ -961,7 +967,7 @@
             
             let interestPrompt = state.selectedInterests.length > 0 ? `- **主要興趣：** ${state.selectedInterests.join('、')}` : '';
 
-            // UPDATED PROMPT
+            // UPDATED PROMPT with new logic
             const userPrompt = `
 # 角色扮演
 你是一位擁有20年經驗的頂尖旅遊規劃師、在地嚮導與美食家。你的任務是結合 Google 地圖、YouTube、票務平台與在地知識，為使用者生成一份**結構極其嚴謹、資訊極度豐富**的 Markdown 旅遊行程。
@@ -971,15 +977,23 @@
 - **天數：** ${ui.days.value}
 - **日期：** ${ui.datePicker.value}
 - **旅行者類型：** ${ui.travelerType.value}
-- **旅行步調：** ${ui.pacing.value} (你會根據此調整每日景點數量)
-- **預算等級：** ${ui.budget.value} (你會根據此推薦對應價位的餐廳與活動)
-- **主要交通方式：** ${ui.transport.value} (你會根據此提供停車或大眾運輸建議)
+- **旅行步調：** ${ui.pacing.value}
+- **預算等級：** ${ui.budget.value}
+- **主要交通方式：** ${ui.transport.value}
 ${interestPrompt}
 
 # 輸出指令 (你必須100%嚴格遵守，否則結果無法解析)
 1.  **格式：** 必須是完整的、純粹的 Markdown。絕不包含其他註解文字。
 2.  **旅程總覽：** 在最前面，生成一個 H1 標題和一段簡短的行程摘要。
-3.  **每日行程結構 (極其重要！)：**
+3.  **行程密度規則 (***極度重要***)：你必須根據使用者選擇的「旅行步調」來決定每個時段(上午/下午/晚上)的活動數量：
+    -   **如果步調是「悠閒放鬆」**：每個時段**必須**安排「1個景點 + 1個餐廳/咖啡廳」。
+    -   **如果步調是「標準適中」**：每個時段**必須**安排至少2個活動，可以是「1個景點 + 1個餐廳」或「2個景點」。
+    -   **如果步調是「緊湊充實」**：每個時段**必須**安排至少3個活動，例如「2個景點 + 1個餐廳」。
+4.  **餐廳推薦邏輯 (***極度重要***)：
+    -   推薦餐廳時，**絕對不准**說「XXX附近的餐廳」。
+    -   你**必須**推薦**具體的餐廳名稱**。
+    -   你**必須**優先選擇在 Google Maps 上擁有**大量評論且高評分**的知名店家。
+5.  **每日行程結構 (嚴格遵守)：**
     -   **每日標題 (H2):** 為每一天建立 H2 標題 (##)，格式為 \`## 第一天：本日主題\`。
     -   **本日總覽 (Daily Summary):** 在 H2 下方，**立刻**建立一個無序列表，**必須**包含以下四項：
         - \`* ☀️ 本日主題：[簡短主題，例如 古蹟巡禮]\`
@@ -987,9 +1001,9 @@ ${interestPrompt}
         - \`* 🏃 行程步調：[呼應使用者選擇的步調]\`
         - \`* 🚗 主要交通：[呼應使用者選擇的交通方式]\`
     -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。
-    -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出景點與餐廳。**午餐和晚餐的餐廳推薦，請直接放在對應的上午或下午/晚上時段的列表中**，並用 🍜 或 🍽️ 表情符號標示。**不要**使用獨立的 \`### 🍜 用餐\` 標題。
+    -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出景點與餐廳。午餐和晚餐的餐廳推薦，請直接放在對應的時段列表中，並用 🍜 或 🍽️ 表情符號標示。**不要**使用獨立的 \`### 🍜 用餐\` 標題。
     -   **地點詳細資訊 (巢狀列表):**
-        -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\` 或 \`- [🍜 鼎泰豐](https://www.google.com/maps/search/?api=1&query=鼎泰豐101店)\`
+        -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的官方全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\` 或 \`- [🍜 鼎泰豐 101店](https://www.google.com/maps/search/?api=1&query=鼎泰豐101店)\`
         -   換行後，使用**巢狀無序列表**提供詳細資訊，**必須**包含以下項目 (若不適用則寫"無"或省略)，順序不可錯：
             -   \`- 🌟 簡介：[為何推薦此處的詳細原因]\`
             -   \`- 🎬 相關影片：[提供一個 YouTube **搜尋**連結。格式: [搜尋「地點」介紹](https://www.youtube.com/results?search_query=URL編碼的地點+介紹)]\`
@@ -999,30 +1013,6 @@ ${interestPrompt}
             -   \`- 🎟️ 預訂/購票：[如果適用，提供 Klook, KKday 或餐廳訂位系統的**建議**連結，或提示需要提前預約。格式: [在 Klook 上預訂](https://www.klook.com/zh-TW/search/?query=地點)]\`
             -   \`- 💡 專家提示：[提供一個內行人才知道的秘訣或建議]\`
             -   \`- ☔️ 雨天備案：[僅對**戶外**景點提供。建議一個附近的室內替代方案。]\`
-
-# 範例輸出片段 (你必須遵循此結構):
-## 第一天：古都之心漫遊
-* ☀️ 本日主題：經典古蹟與老街散策
-* 💰 預計花費：約 JPY 4,000 ~ 6,000 / 人
-* 🏃 行程步調：標準適中
-* 🚗 主要交通：大眾運輸
-### 🌅 上午
-- [📍 清水寺](https://www.google.com/maps/search/?api=1&query=京都清水寺)
-    - 🌟 簡介：京都最古老的寺院之一，從清水舞台上可將京都市景盡收眼底。
-    - 🎬 相關影片：[搜尋「清水寺」介紹](https://www.youtube.com/results?search_query=清水寺+介紹)
-    - 營業時間：06:00 - 18:00
-    - 💰 花費：約 JPY 400 (門票)
-    - 🚗 交通：從京都車站搭乘市營巴士206號線至「五条坂」站下車，步行約10分鐘。
-    - 🎟️ 預訂/購票：門票可現場購買，無需預約。
-    - 💡 專家提示：建議早上七點前抵達，可以避開旅行團人潮，享受寧靜的氛圍。
-    - ☔️ 雨天備案：可增加在寺內參拜及商店街購物時間，或提早前往下個室內行程。
-- [🍜 喜樂庵 岡本家](https://www.google.com/maps/search/?api=1&query=喜樂庵+岡本家+清水寺)
-    - 🌟 簡介：位於清水寺參道上，提供美味的湯豆腐和蕎麥麵，是補充體力的好地方。
-    - 🎬 相關影片：[搜尋「喜樂庵 岡本家」介紹](https://www.youtube.com/results?search_query=喜樂庵+岡本家+介紹)
-    - 營業時間：10:30 - 17:00
-    - 💰 花費：約 JPY 1,500 - 2,500
-    - 🚗 交通：從清水寺步行約 5 分鐘。
-    - 💡 專家提示：他們的抹茶甜點也非常受歡迎。
 `;
             try {
                 const apiKey = GEMINI_API_KEY; 
@@ -1058,7 +1048,7 @@ ${interestPrompt}
                 } else {
                     let errorText = 'AI 未能回傳有效的行程內容。';
                     if(result.promptFeedback && result.promptFeedback.blockReason) {
-                        errorText += ` 原因: ${result.promptFeedback.blockReason}`;
+                        errorText += ` 原因: ${result.promptFeedback.blockReason.toString()}`;
                     }
                     throw new Error(errorText);
                 }
