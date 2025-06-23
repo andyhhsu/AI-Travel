@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v13.9.3</title>
+    <title>AI 旅遊行程規劃師 v13.9.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -96,7 +96,7 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="text-center mb-10">
-            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.3</h1>
+            <h1 class="text-4xl sm:text-5xl font-bold main-title mb-3">AI 旅遊行程規劃師 v13.9.4</h1>
             <p class="text-lg text-slate-500">輸入您的旅遊靈感，即刻生成專業級視覺化行程與地圖路線</p>
         </div>
         
@@ -154,7 +154,6 @@
                             </select>
                         </div>
                     </div>
-                    <!-- MODIFIED: Removed h-full from this container to allow it to grow naturally with its content -->
                     <div class="flex flex-col">
                         <label class="block text-md font-medium text-slate-700">🎨 主要興趣偏好 (選填)</label>
                         <div id="interest-tags-container" class="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg bg-slate-50 mt-2 min-h-[50px] items-center flex-grow">
@@ -451,14 +450,13 @@
                         let nextUl = element.nextElementSibling;
                         if (nextUl && nextUl.tagName === 'UL' && nextUl.querySelector('a[href*="google.com/maps/search"]')) {
                             const cardContainer = document.createElement('div');
-                            cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6';
+                            // UPDATED: Changed grid to md:grid-cols-2 for a two-column layout
+                            cardContainer.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
                             
                             Array.from(nextUl.children).forEach(li => {
                                 // Find the first link in the li, which should be the map link
                                 const mainLink = li.querySelector('a');
                                 
-                                // FIX: Removed 'mainLink.parentElement === li' check.
-                                // This makes parsing more robust against extra <p> tags from the markdown parser.
                                 if (mainLink && mainLink.href.includes('google.com/maps/search/')) {
                                     const cardId = `card-${dayIndex}-${itemIndex}`;
                                     const name = mainLink.textContent.replace(/📍|🍜|🍽️/g, '').trim();
@@ -963,6 +961,7 @@
             
             let interestPrompt = state.selectedInterests.length > 0 ? `- **主要興趣：** ${state.selectedInterests.join('、')}` : '';
 
+            // UPDATED PROMPT
             const userPrompt = `
 # 角色扮演
 你是一位擁有20年經驗的頂尖旅遊規劃師、在地嚮導與美食家。你的任務是結合 Google 地圖、YouTube、票務平台與在地知識，為使用者生成一份**結構極其嚴謹、資訊極度豐富**的 Markdown 旅遊行程。
@@ -987,10 +986,10 @@ ${interestPrompt}
         - \`* 💰 預計花費：[根據預算等級估算一個範圍，例如 約 TWD 1,500 ~ 2,500 / 人]\`
         - \`* 🏃 行程步調：[呼應使用者選擇的步調]\`
         - \`* 🚗 主要交通：[呼應使用者選擇的交通方式]\`
-    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。在午餐和晚餐時段，**必須**加入 \`### 🍜 用餐\` 標題。
-    -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出活動/餐廳。每個列表項代表一個地點。
+    -   **時段標題 (H3):** 依序建立 \`### 🌅 上午\`, \`### ☀️ 下午\`, \`### 🌙 晚上\`。
+    -   **地點列表項 (li):** 在每個 H3 下方，用**無序列表** (-) 列出景點與餐廳。**午餐和晚餐的餐廳推薦，請直接放在對應的上午或下午/晚上時段的列表中**，並用 🍜 或 🍽️ 表情符號標示。**不要**使用獨立的 \`### 🍜 用餐\` 標題。
     -   **地點詳細資訊 (巢狀列表):**
-        -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\`
+        -   **第一行**必須是該地點的 Google Maps 搜尋連結。為了地圖精準，連結與 query 參數的地點名稱**必須是 Google Maps 上的全名或地址**。範例：\`- [📍 台北101觀景台](https://www.google.com/maps/search/?api=1&query=台北101觀景台)\` 或 \`- [🍜 鼎泰豐](https://www.google.com/maps/search/?api=1&query=鼎泰豐101店)\`
         -   換行後，使用**巢狀無序列表**提供詳細資訊，**必須**包含以下項目 (若不適用則寫"無"或省略)，順序不可錯：
             -   \`- 🌟 簡介：[為何推薦此處的詳細原因]\`
             -   \`- 🎬 相關影片：[提供一個 YouTube **搜尋**連結。格式: [搜尋「地點」介紹](https://www.youtube.com/results?search_query=URL編碼的地點+介紹)]\`
@@ -1017,10 +1016,17 @@ ${interestPrompt}
     - 🎟️ 預訂/購票：門票可現場購買，無需預約。
     - 💡 專家提示：建議早上七點前抵達，可以避開旅行團人潮，享受寧靜的氛圍。
     - ☔️ 雨天備案：可增加在寺內參拜及商店街購物時間，或提早前往下個室內行程。
+- [🍜 喜樂庵 岡本家](https://www.google.com/maps/search/?api=1&query=喜樂庵+岡本家+清水寺)
+    - 🌟 簡介：位於清水寺參道上，提供美味的湯豆腐和蕎麥麵，是補充體力的好地方。
+    - 🎬 相關影片：[搜尋「喜樂庵 岡本家」介紹](https://www.youtube.com/results?search_query=喜樂庵+岡本家+介紹)
+    - 營業時間：10:30 - 17:00
+    - 💰 花費：約 JPY 1,500 - 2,500
+    - 🚗 交通：從清水寺步行約 5 分鐘。
+    - 💡 專家提示：他們的抹茶甜點也非常受歡迎。
 `;
             try {
                 const apiKey = GEMINI_API_KEY; 
-                if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") { // <-- CORRECTED THIS LINE
+                if (!apiKey) {
                     throw new Error("Gemini API Key is missing. 請在程式碼中填入您的金鑰。");
                 }
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
