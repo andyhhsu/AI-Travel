@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v14.5 (Key Debugger)</title>
+    <title>AI 旅遊行程規劃師 v14.6 (Final Fix)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -103,8 +103,7 @@
             body { background-color: white; }
         }
     </style>
-    <!-- Google Maps API -->
-    <!-- 請確認您已經將 AIzaSyB... 填入下方的 key 中 -->
+    <!-- Google Maps API (您的地圖 Key 已自動填入) -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY&callback=initMap&libraries=marker,routes,geocoding,places"></script>
 </head>
 <body class="antialiased">
@@ -120,12 +119,12 @@
         <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl no-print">
             <!-- API Key Input Section -->
             <div class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg relative">
-                <label for="api-key-input" class="block text-md font-medium text-slate-700 mb-2">🔑 Google Gemini API Key <span class="text-xs text-slate-500 font-normal">(必填)</span></label>
+                <label for="api-key-input" class="block text-md font-medium text-slate-700 mb-2">🔑 Google Gemini API Key <span class="text-xs text-slate-500 font-normal">(必填，請勿填入地圖 Key)</span></label>
                 <div class="flex gap-2">
-                    <input type="password" id="api-key-input" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="請輸入 AI Studio 申請的 Key (非 Map Key)" value="">
-                    <button id="clear-key-btn" class="whitespace-nowrap bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors" title="清除暫存的金鑰">清除重填</button>
+                    <input type="password" id="api-key-input" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="請輸入從 AI Studio 申請的 Key..." value="">
+                    <button id="clear-key-btn" class="whitespace-nowrap bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors" title="清除暫存的金鑰">清除</button>
                 </div>
-                <p class="text-xs text-slate-500 mt-1">您的 Key 僅在瀏覽器端使用。請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-600 hover:underline">Google AI Studio</a> 免費取得。</p>
+                <p class="text-xs text-slate-500 mt-1">請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-600 hover:underline font-bold">Google AI Studio</a> 免費申請。</p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
@@ -247,6 +246,9 @@
     let renderers = []; 
     let travelTipsInterval;
 
+    // 此為使用者提供的地圖專用 Key
+    const MAPS_API_KEY = "AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY";
+
     // Global handler for Google Maps authentication failures
     window.gm_authFailure = function() {
         const mapContainer = document.getElementById("map-container");
@@ -257,8 +259,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <h3 class="text-lg font-bold text-slate-700 mb-2">地圖載入失敗</h3>
-                    <p class="mb-2">Google Maps API Key 無效或未設定。</p>
-                    <p class="text-sm">請確認您已啟用 Billing 並啟用了 Maps JavaScript API。</p>
+                    <p class="mb-2">地圖 API 請求被拒絕 (403)。</p>
+                    <p class="text-sm">這通常是因為您的 API Key 尚未在 Google Cloud Console 設定網域限制，或者網域不符。</p>
                 </div>
             `;
         }
@@ -276,7 +278,7 @@
             map = new google.maps.Map(document.getElementById("map-container"), {
                 center: taipei,
                 zoom: 12,
-                mapId: 'DEMO_MAP_ID', // API Key 若無 Map ID，會自動降級
+                mapId: 'DEMO_MAP_ID', 
                 streetViewControl: false,
                 mapTypeControl: false,
             });
@@ -345,7 +347,7 @@
         ui.clearKeyBtn.addEventListener('click', () => {
             ui.apiKeyInput.value = '';
             localStorage.removeItem('gemini_api_key');
-            alert('已清除暫存的 API Key，請重新輸入。');
+            alert('已清除暫存的金鑰，請重新輸入 Gemini API Key。');
         });
         
         let state = { selectedInterests: [], rawMarkdownContent: '' };
@@ -691,7 +693,11 @@
         
         function findAndSetPhoto(locationName, imageContainer) {
              if (!placesService) {
-                 imageContainer.innerHTML = `<div class="flex items-center justify-center w-full h-full bg-slate-100 text-slate-500 text-sm p-4 text-center">地圖服務載入中...</div>`;
+                 const isApiLoaded = typeof google !== 'undefined' && typeof google.maps !== 'undefined';
+                 const msg = isApiLoaded ? "地圖服務初始中..." : "地圖 API 遭拒<br><span class='text-xs'>(請檢查 Console/網域限制)</span>";
+                 const color = isApiLoaded ? "text-slate-500" : "text-red-500";
+                 
+                 imageContainer.innerHTML = `<div class="flex flex-col items-center justify-center w-full h-full bg-slate-100 ${color} text-sm p-4 text-center">${msg}</div>`;
                  return;
              }
             const request = {
@@ -725,6 +731,12 @@
 
             if (!apiKey) {
                 alert("請先輸入 Gemini API Key 才能使用此功能！");
+                return;
+            }
+            
+            // Safety check again
+            if (apiKey === MAPS_API_KEY) {
+                alert("您輸入的是地圖 Key！請輸入有效的 Gemini API Key。");
                 return;
             }
             
@@ -1073,16 +1085,13 @@
                 return false;
             }
             
-            // Check if user mistakenly pasted the Maps API Key (starts with AIza and is exactly 39 chars, but let's just check the known bad key)
+            // Check if user mistakenly pasted the Maps API Key
             const inputKey = ui.apiKeyInput.value.trim();
-            const mapsKey = "AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY"; // Hardcoded maps key
-            
-            if (inputKey === mapsKey) {
+            if (inputKey === MAPS_API_KEY) {
                 ui.formValidationMessage.innerHTML = `
                     <strong>⚠️ 金鑰錯誤警告</strong><br>
-                    您似乎填入了程式碼中預設的 Google Maps API Key，而不是您的 Gemini API Key。<br>
-                    這會導致 "Generative Language API disabled" 錯誤。<br>
-                    請確認您是從 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline">Google AI Studio</a> 複製的金鑰。
+                    您似乎填入了程式碼中預設的地圖 Key，而不是您的 Gemini API Key。<br>
+                    請確認您是從 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline">Google AI Studio</a> 申請的 Gemini 金鑰。
                 `;
                 ui.formValidationMessage.classList.remove('hidden');
                 return false;
