@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v14.6 (Final Fix)</title>
+    <title>AI 旅遊行程規劃師 v14.6 (Quick Nav Added)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -47,7 +47,7 @@
 
         /* --- 結果區域樣式 --- */
         #result-container h1 { font-size: 2.25rem; font-weight: bold; margin-bottom: 1rem; color: #1e293b; }
-        #result-container h2 { font-size: 1.75rem; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 3rem; margin-bottom: 1.5rem; color: var(--primary-color); clear: both; }
+        #result-container h2 { font-size: 1.75rem; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 3rem; margin-bottom: 1.5rem; color: var(--primary-color); clear: both; scroll-margin-top: 140px; /* 為了配合 sticky header */ }
         #result-text h3, #result-visual h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #334155; padding-left: 0.5rem; border-left: 4px solid var(--primary-color-hover); }
 
         .info-card {
@@ -95,15 +95,39 @@
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 0.5rem;
         }
+
+        /* --- New Nav Styles --- */
+        .day-nav-container {
+            /* Sticky positioning handled by Tailwind classes in JS */
+            scrollbar-width: thin;
+        }
+        .day-nav-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        .day-nav-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+        .day-nav-btn {
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .day-nav-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
         
         /* Print styles */
         @media print {
             .no-print { display: none !important; }
             .info-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
             body { background-color: white; }
+            #day-quick-nav { display: none !important; }
         }
     </style>
-    <!-- Google Maps API (您的地圖 Key 已自動填入) -->
+    <!-- Google Maps API -->
+    <!-- 請確認您已經將 AIzaSyB... 填入下方的 key 中 -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY&callback=initMap&libraries=marker,routes,geocoding,places"></script>
 </head>
 <body class="antialiased">
@@ -119,12 +143,12 @@
         <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl no-print">
             <!-- API Key Input Section -->
             <div class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg relative">
-                <label for="api-key-input" class="block text-md font-medium text-slate-700 mb-2">🔑 Google Gemini API Key <span class="text-xs text-slate-500 font-normal">(必填，請勿填入地圖 Key)</span></label>
+                <label for="api-key-input" class="block text-md font-medium text-slate-700 mb-2">🔑 Google Gemini API Key <span class="text-xs text-slate-500 font-normal">(必填)</span></label>
                 <div class="flex gap-2">
-                    <input type="password" id="api-key-input" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="請輸入從 AI Studio 申請的 Key..." value="">
-                    <button id="clear-key-btn" class="whitespace-nowrap bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors" title="清除暫存的金鑰">清除</button>
+                    <input type="password" id="api-key-input" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="請輸入 AI Studio 申請的 Key (非 Map Key)" value="">
+                    <button id="clear-key-btn" class="whitespace-nowrap bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors" title="清除暫存的金鑰">清除重填</button>
                 </div>
-                <p class="text-xs text-slate-500 mt-1">請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-600 hover:underline font-bold">Google AI Studio</a> 免費申請。</p>
+                <p class="text-xs text-slate-500 mt-1">您的 Key 僅在瀏覽器端使用。請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-600 hover:underline">Google AI Studio</a> 免費取得。</p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
@@ -150,7 +174,7 @@
                             <option>情侶蜜月</option><option>親子家庭</option><option>獨自背包探險</option><option>三五好友輕旅行</option><option>退休樂活族</option><option>商務差旅</option>
                         </select>
                     </div>
-                     <div>
+                      <div>
                         <label for="transport" class="block text-md font-medium text-slate-700 mb-2">🚇 主要交通方式</label>
                         <select id="transport" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white">
                             <option value="混合(大眾運輸為主)">混合(大眾運輸為主)</option>
@@ -217,7 +241,7 @@
                         <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm sm:text-base">重新規劃</button>
                   </div>
              </div>
-             <div id="result-container" class="bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-xl">
+             <div id="result-container" class="bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-xl relative">
                   <div id="result-visual"></div>
                   <div id="result-text" class="hidden prose max-w-none p-4"></div>
                   <div id="result-map" class="hidden">
@@ -246,9 +270,6 @@
     let renderers = []; 
     let travelTipsInterval;
 
-    // 此為使用者提供的地圖專用 Key
-    const MAPS_API_KEY = "AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY";
-
     // Global handler for Google Maps authentication failures
     window.gm_authFailure = function() {
         const mapContainer = document.getElementById("map-container");
@@ -259,8 +280,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <h3 class="text-lg font-bold text-slate-700 mb-2">地圖載入失敗</h3>
-                    <p class="mb-2">地圖 API 請求被拒絕 (403)。</p>
-                    <p class="text-sm">這通常是因為您的 API Key 尚未在 Google Cloud Console 設定網域限制，或者網域不符。</p>
+                    <p class="mb-2">Google Maps API Key 無效或未設定。</p>
+                    <p class="text-sm">請確認您已啟用 Billing 並啟用了 Maps JavaScript API。</p>
                 </div>
             `;
         }
@@ -278,7 +299,7 @@
             map = new google.maps.Map(document.getElementById("map-container"), {
                 center: taipei,
                 zoom: 12,
-                mapId: 'DEMO_MAP_ID', 
+                mapId: 'DEMO_MAP_ID', // API Key 若無 Map ID，會自動降級
                 streetViewControl: false,
                 mapTypeControl: false,
             });
@@ -347,7 +368,7 @@
         ui.clearKeyBtn.addEventListener('click', () => {
             ui.apiKeyInput.value = '';
             localStorage.removeItem('gemini_api_key');
-            alert('已清除暫存的金鑰，請重新輸入 Gemini API Key。');
+            alert('已清除暫存的 API Key，請重新輸入。');
         });
         
         let state = { selectedInterests: [], rawMarkdownContent: '' };
@@ -422,7 +443,7 @@
             if (tabName === 'map' && dailyLocations.length > 0 && ui.dayTogglesContainer.children.length > 0) {
                  const firstDayButton = ui.dayTogglesContainer.querySelector('button');
                  if(firstDayButton && !firstDayButton.classList.contains('day-toggle-btn-active')) {
-                   firstDayButton.click();
+                    firstDayButton.click();
                  }
                  setTimeout(() => {
                      if(map) google.maps.event.trigger(map, 'resize');
@@ -480,6 +501,11 @@
             const visualFragment = document.createDocumentFragment();
             dailyLocations = []; 
 
+            // --- 新增：建立 Sticky Navigation Bar ---
+            const navContainer = document.createElement('div');
+            navContainer.id = "day-quick-nav";
+            navContainer.className = "day-nav-container sticky top-0 z-10 bg-white/95 backdrop-blur shadow-sm border-b border-slate-200 -mx-4 sm:-mx-6 md:-mx-10 px-4 sm:px-6 md:px-10 py-3 mb-6 flex gap-2 overflow-x-auto whitespace-nowrap no-print";
+            
             let currentDayTitle = '';
             let dayLocations = [];
             let itemIndex = 0;
@@ -506,7 +532,30 @@
                     dayLocations = [];
                     itemIndex = 0;
                     
-                    visualFragment.appendChild(node.cloneNode(true));
+                    // --- 新增：處理 H2 錨點與導覽按鈕 ---
+                    const dayAnchorId = `day-anchor-${dayIndex}`;
+                    
+                    // 1. 建立導覽按鈕
+                    const navBtn = document.createElement('button');
+                    // 嘗試從標題提取簡短名稱 (例如 "第一天" 或 "Day 1")
+                    const shortTitle = currentDayTitle.split('：')[0].replace(/#+\s*/, '') || `Day ${dayIndex + 1}`;
+                    navBtn.textContent = shortTitle;
+                    navBtn.className = "day-nav-btn px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-semibold border border-transparent";
+                    navBtn.onclick = () => {
+                         // Scroll
+                         const target = document.getElementById(dayAnchorId);
+                         if(target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                         
+                         // Update active state
+                         navContainer.querySelectorAll('.day-nav-btn').forEach(b => b.classList.remove('active'));
+                         navBtn.classList.add('active');
+                    };
+                    navContainer.appendChild(navBtn);
+
+                    // 2. 複製 H2 並賦予 ID
+                    const h2Clone = node.cloneNode(true);
+                    h2Clone.id = dayAnchorId;
+                    visualFragment.appendChild(h2Clone);
                     return;
                 }
 
@@ -579,6 +628,14 @@
             }
 
             ui.resultVisual.innerHTML = '';
+            
+            // --- 新增：如果有多天，則插入導覽列 ---
+            if (dailyLocations.length > 1) {
+                // Set first button active
+                if(navContainer.firstChild) navContainer.firstChild.classList.add('active');
+                ui.resultVisual.appendChild(navContainer);
+            }
+            
             ui.resultVisual.appendChild(visualFragment);
             setupDayToggles();
         }
@@ -712,7 +769,7 @@
                     img.alt = `Photo of ${locationName}`;
                     img.className = 'info-card-image';
                     img.onerror = () => {
-                         imageContainer.innerHTML = `<div class="flex items-center justify-center w-full h-full bg-slate-100 text-slate-500 text-sm p-4 text-center">圖片無法顯示</div>`;
+                          imageContainer.innerHTML = `<div class="flex items-center justify-center w-full h-full bg-slate-100 text-slate-500 text-sm p-4 text-center">圖片無法顯示</div>`;
                     };
                     imageContainer.innerHTML = '';
                     imageContainer.appendChild(img);
@@ -731,12 +788,6 @@
 
             if (!apiKey) {
                 alert("請先輸入 Gemini API Key 才能使用此功能！");
-                return;
-            }
-            
-            // Safety check again
-            if (apiKey === MAPS_API_KEY) {
-                alert("您輸入的是地圖 Key！請輸入有效的 Gemini API Key。");
                 return;
             }
             
@@ -1085,13 +1136,16 @@
                 return false;
             }
             
-            // Check if user mistakenly pasted the Maps API Key
+            // Check if user mistakenly pasted the Maps API Key (starts with AIza and is exactly 39 chars, but let's just check the known bad key)
             const inputKey = ui.apiKeyInput.value.trim();
-            if (inputKey === MAPS_API_KEY) {
+            const mapsKey = "AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY"; // Hardcoded maps key
+            
+            if (inputKey === mapsKey) {
                 ui.formValidationMessage.innerHTML = `
                     <strong>⚠️ 金鑰錯誤警告</strong><br>
-                    您似乎填入了程式碼中預設的地圖 Key，而不是您的 Gemini API Key。<br>
-                    請確認您是從 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline">Google AI Studio</a> 申請的 Gemini 金鑰。
+                    您似乎填入了程式碼中預設的 Google Maps API Key，而不是您的 Gemini API Key。<br>
+                    這會導致 "Generative Language API disabled" 錯誤。<br>
+                    請確認您是從 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline">Google AI Studio</a> 複製的金鑰。
                 `;
                 ui.formValidationMessage.classList.remove('hidden');
                 return false;
@@ -1223,6 +1277,27 @@ ${interestPrompt}
                             <div class="mt-4 text-center">
                                 <button onclick="document.getElementById('clear-key-btn').click(); document.getElementById('error-message').classList.add('hidden'); document.getElementById('input-form').classList.remove('hidden');" class="bg-red-100 text-red-700 border border-red-300 px-4 py-2 rounded hover:bg-red-200">
                                     清除錯誤 Key 並重試
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                // NEW: Handling for Referer blocked error
+                else if (error.message.includes("Requests from referer") && error.message.includes("blocked")) {
+                    displayMessage = `
+                        <div class="text-left">
+                            <strong>🚫 API Key 網域限制錯誤</strong><br><br>
+                            您的 API Key 設定了<strong>網域限制 (HTTP Referrer restrictions)</strong>，導致無法在目前的測試網址執行請求。<br>
+                            <br>
+                            <strong>解決方法：</strong>
+                            <ul class="list-disc pl-5 mt-2 space-y-1">
+                                <li>請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline text-blue-600 font-bold">Google AI Studio</a> 或 Google Cloud Console。</li>
+                                <li>編輯您的 API Key，將「應用程式限制 (Application restrictions)」改為 <strong>None (無限制)</strong>。</li>
+                                <li>或者建立一個新的 API Key 專門用於測試。</li>
+                            </ul>
+                            <div class="mt-4 text-center">
+                                <button onclick="document.getElementById('clear-key-btn').click(); document.getElementById('error-message').classList.add('hidden'); document.getElementById('input-form').classList.remove('hidden');" class="bg-red-100 text-red-700 border border-red-300 px-4 py-2 rounded hover:bg-red-200">
+                                    清除並重試
                                 </button>
                             </div>
                         </div>
