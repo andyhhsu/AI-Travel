@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 旅遊行程規劃師 v14.2 (API Key Added)</title>
+    <title>AI 旅遊行程規劃師 v14.5 (Key Debugger)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -104,7 +104,7 @@
         }
     </style>
     <!-- Google Maps API -->
-    <!-- API Key has been updated -->
+    <!-- 請確認您已經將 AIzaSyB... 填入下方的 key 中 -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY&callback=initMap&libraries=marker,routes,geocoding,places"></script>
 </head>
 <body class="antialiased">
@@ -118,6 +118,16 @@
         <div id="form-validation-message" class="hidden max-w-4xl mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center no-print"></div>
 
         <div id="input-form" class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl no-print">
+            <!-- API Key Input Section -->
+            <div class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg relative">
+                <label for="api-key-input" class="block text-md font-medium text-slate-700 mb-2">🔑 Google Gemini API Key <span class="text-xs text-slate-500 font-normal">(必填)</span></label>
+                <div class="flex gap-2">
+                    <input type="password" id="api-key-input" class="form-input w-full p-3 border border-slate-300 rounded-lg shadow-sm" placeholder="請輸入 AI Studio 申請的 Key (非 Map Key)" value="">
+                    <button id="clear-key-btn" class="whitespace-nowrap bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors" title="清除暫存的金鑰">清除重填</button>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">您的 Key 僅在瀏覽器端使用。請至 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-cyan-600 hover:underline">Google AI Studio</a> 免費取得。</p>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
                 <!-- Left Column -->
                 <div class="space-y-6">
@@ -292,11 +302,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const apiKey = ""; // 系統自動注入，請勿填寫
-
         // --- UI Elements ---
         const ui = {
             inputForm: document.getElementById('input-form'),
+            apiKeyInput: document.getElementById('api-key-input'), // New input
+            clearKeyBtn: document.getElementById('clear-key-btn'), // New button
             generateBtn: document.getElementById('generate-btn'),
             loader: document.getElementById('loader'),
             travelTip: document.getElementById('travel-tip'),
@@ -325,6 +335,18 @@
             budget: document.getElementById('budget'),
             transport: document.getElementById('transport'),
         };
+        
+        // Restore API Key from localStorage if available
+        if (localStorage.getItem('gemini_api_key')) {
+            ui.apiKeyInput.value = localStorage.getItem('gemini_api_key');
+        }
+        
+        // Clear Key Button Event
+        ui.clearKeyBtn.addEventListener('click', () => {
+            ui.apiKeyInput.value = '';
+            localStorage.removeItem('gemini_api_key');
+            alert('已清除暫存的 API Key，請重新輸入。');
+        });
         
         let state = { selectedInterests: [], rawMarkdownContent: '' };
         const suggestedInterests = ['美食探索', '自然風光', '歷史古蹟', '購物血拼', '動漫文化', '夜生活體驗', '藝術展覽', '登山健行', '海灘戲水', '博物館參觀', '咖啡廳巡禮', '文創市集', '親子樂園', 'SPA按摩', '攝影旅拍', '溫泉放鬆'];
@@ -699,6 +721,12 @@
             const { dayIndex, itemIndex, locationName } = button.dataset;
             const cardId = `card-${dayIndex}-${itemIndex}`;
             const cardElement = document.getElementById(cardId);
+            const apiKey = ui.apiKeyInput.value.trim();
+
+            if (!apiKey) {
+                alert("請先輸入 Gemini API Key 才能使用此功能！");
+                return;
+            }
             
             button.innerHTML = 'AI 思考中...';
             button.classList.add('loading');
@@ -755,6 +783,7 @@
             } catch (error) {
                 console.error("Swap error:", error);
                 button.innerHTML = '更換失敗';
+                alert(`更換失敗：${error.message}`);
             } finally {
                  setTimeout(() => {
                      button.innerHTML = '🔄 換一個';
@@ -1024,7 +1053,8 @@
             const requiredFields = [
                 { el: ui.destination, name: "目的地" },
                 { el: ui.days, name: "總天數" },
-                { el: ui.datePicker, name: "出發日期" }
+                { el: ui.datePicker, name: "出發日期" },
+                { el: ui.apiKeyInput, name: "Gemini API Key" }
             ];
             let missingFields = [];
 
@@ -1043,6 +1073,21 @@
                 return false;
             }
             
+            // Check if user mistakenly pasted the Maps API Key (starts with AIza and is exactly 39 chars, but let's just check the known bad key)
+            const inputKey = ui.apiKeyInput.value.trim();
+            const mapsKey = "AIzaSyB-Ev8iMdRHstXwwFL2L6JpghYzgGsbiqY"; // Hardcoded maps key
+            
+            if (inputKey === mapsKey) {
+                ui.formValidationMessage.innerHTML = `
+                    <strong>⚠️ 金鑰錯誤警告</strong><br>
+                    您似乎填入了程式碼中預設的 Google Maps API Key，而不是您的 Gemini API Key。<br>
+                    這會導致 "Generative Language API disabled" 錯誤。<br>
+                    請確認您是從 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline">Google AI Studio</a> 複製的金鑰。
+                `;
+                ui.formValidationMessage.classList.remove('hidden');
+                return false;
+            }
+
             ui.formValidationMessage.classList.add('hidden');
             return true;
         }
@@ -1107,13 +1152,23 @@ ${interestPrompt}
 ...
 `;
             try {
+                const apiKey = ui.apiKeyInput.value.trim();
+                
+                // Store API key in localStorage for convenience
+                localStorage.setItem('gemini_api_key', apiKey);
+
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: userPrompt }] }] };
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
                 if (!response.ok) {
                     let errorMsg = `API 請求失敗 (${response.status})`;
-                    try { const err = await response.json(); errorMsg += `: ${err.error?.message || ''}`; } catch(e){}
+                    try { 
+                        const err = await response.json(); 
+                        if (err.error && err.error.message) {
+                            errorMsg = err.error.message;
+                        }
+                    } catch(e){}
                     throw new Error(errorMsg);
                 }
                 
@@ -1141,9 +1196,33 @@ ${interestPrompt}
                 ui.resultWrapper.scrollIntoView({ behavior: 'smooth' });
                 
             } catch (error) {
-                console.error('Error:', error);
-                ui.errorMessage.textContent = `發生錯誤：${error.message}`;
-                ui.inputForm.classList.remove('hidden');
+                console.error('Error generating itinerary:', error);
+                
+                let displayMessage = `發生錯誤：${error.message}`;
+                
+                // Specific handling for API not enabled error
+                if (error.message.includes("Generative Language API") && (error.message.includes("disabled") || error.message.includes("has not been used"))) {
+                    displayMessage = `
+                        <div class="text-left">
+                            <strong>🚫 API 權限錯誤 (403)</strong><br><br>
+                            這通常是因為您使用的 API Key <strong>沒有啟用 Gemini 權限</strong>。<br>
+                            <ul class="list-disc pl-5 mt-2 space-y-1">
+                                <li>檢查您是否誤用了 <strong>Google Maps API Key</strong> (通常是 AIzaSyB... 開頭)。</li>
+                                <li>Gemini API Key 通常需要在 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline text-blue-600 font-bold">Google AI Studio</a> 另外申請。</li>
+                                <li>如果是同一個專案，請確認已在 Google Cloud Console 啟用 "Generative Language API"。</li>
+                            </ul>
+                            <div class="mt-4 text-center">
+                                <button onclick="document.getElementById('clear-key-btn').click(); document.getElementById('error-message').classList.add('hidden'); document.getElementById('input-form').classList.remove('hidden');" class="bg-red-100 text-red-700 border border-red-300 px-4 py-2 rounded hover:bg-red-200">
+                                    清除錯誤 Key 並重試
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                ui.errorMessage.innerHTML = displayMessage; 
+                ui.inputForm.classList.remove('hidden'); // Keep form visible so they can change key
+                ui.loader.classList.add('hidden'); // Ensure loader is hidden
                 ui.errorMessage.classList.remove('hidden');
             } finally {
                 clearInterval(travelTipsInterval);
